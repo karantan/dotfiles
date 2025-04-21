@@ -161,7 +161,7 @@
       #
       # My personal settings
       #
-      system.defaults.screencapture.location = "~/Downloads/screenshots";
+      system.defaults.screencapture.location = "~/Downloads";
       # Enable touch ID authentication for sudo.
       security.pam.services.sudo_local.touchIdAuth = true;
       #
