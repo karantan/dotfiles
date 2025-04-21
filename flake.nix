@@ -59,18 +59,11 @@
         shellAliases = {
           update-flake = "nix flake update --flake ~/.dotfiles";
           penv = ". $HOME/py3122-devenv/.venv/bin/activate";
-          # axel = "axel -a";
-          # rsync = "rsync -avzhP";
-          # pwgen = "pwgen --ambiguous 20";
           cat = "bat";
-          # ping = "prettyping --nolegend";
-          # diff = "diff-so-fancy";
-          # man = "tldr";
-          # subl = "code";
           nixre = "darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air --impure";
           nixcfg = "code ~/.dotfiles";
           nixgc = "nix-collect-garbage -d";
-          # yt-dlp-lowres = "yt-dlp -S res:720";
+          nixdu = "du -shx /nix/store ";
         };
         history = {
           append = true;
