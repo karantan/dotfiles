@@ -19,6 +19,8 @@
       home.homeDirectory = lib.mkForce "/Users/karantan";
       home.stateVersion = "25.05";
       programs.home-manager.enable = true;
+      programs.htop.enable = true;
+      programs.bat.enable = true;
 
       # Software I can't live without
       home.packages = with pkgs; [
@@ -26,13 +28,24 @@
         pkgs.cachix
         pkgs.python3
         pkgs.go
-        pkgs.htop
-        pkgs.bat
-        pkgs.tmux
       ];
+
       programs.direnv = {
         enable = true;
         nix-direnv.enable = true;
+      };
+      programs.zellij = {
+        enable = true;
+        # enableZshIntegration = true;
+        settings = {
+          copy_command = "pbcopy";
+        };
+      };
+
+      programs.fzf = {
+        enable = true;
+        tmux.enableShellIntegration = true;
+        enableZshIntegration = true;
       };
 
       programs.zsh = {
@@ -65,6 +78,9 @@
           nixcfg = "code ~/.dotfiles";
           nixgc = "nix-collect-garbage -d";
           nixdu = "du -shx /nix/store ";
+          e = "zellij attach ebn || zellij -s ebn";
+          ee = "zellij attach ebn-nixos || zellij -s ebn-nixos";
+          zls = "zellij list-sessions";
         };
         history = {
           append = true;
@@ -145,9 +161,6 @@
 
       # set netrc for automatic login processes (e.g. for cachix)
       nix.settings.netrc-file = "/Users/karantan/.config/nix/netrc";
-
-      # Create /etc/zshrc that loads the nix-darwin environment.
-      programs.zsh.enable = true;
 
       # Set Git commit hash for darwin-version.
       system.configurationRevision = self.rev or self.dirtyRev or null;
