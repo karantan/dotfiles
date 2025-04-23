@@ -28,6 +28,7 @@
         pkgs.go
         pkgs.htop
         pkgs.bat
+        pkgs.tmux
       ];
       programs.direnv = {
         enable = true;
@@ -133,7 +134,7 @@
       # Configure Cachix
       nix.settings.substituters = [
         "https://cache.nixos.org"
-        https://devenv.cachix.org
+        "https://devenv.cachix.org"
         "https://niteo.cachix.org"
       ];
       nix.settings.trusted-public-keys = [
