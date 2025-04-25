@@ -132,6 +132,7 @@
           nixdu = "du -shx /nix/store ";
           e = "zellij attach ebn || zellij -s ebn";
           ee = "zellij attach ebn-nixos || zellij -s ebn-nixos";
+          eee = "zellij attach misc || zellij -s misc";
           zls = "zellij list-sessions";
         };
         history = {
@@ -140,7 +141,9 @@
         };
         initExtraFirst = ''
           function edithosts {
-              sudo nano /etc/hosts && echo "* Successfully edited /etc/hosts"
+              export EDITOR="code --wait"
+              sudo -e /etc/hosts
+              echo "* Successfully edited /etc/hosts"
               sudo dscacheutil -flushcache && echo "* Flushed local DNS cache"
           }        
         '';
