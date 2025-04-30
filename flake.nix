@@ -28,6 +28,7 @@
         pkgs.cachix
         pkgs.python3
         pkgs.go
+        pkgs.cloc
       ];
 
       programs.direnv = {
@@ -123,17 +124,18 @@
           PYTHONDONTWRITEBYTECODE = "0";
         };
         shellAliases = {
-          update-flake = "nix flake update --flake ~/.dotfiles";
           penv = ". $HOME/py3122-devenv/.venv/bin/activate";
           cat = "bat";
           nixre = "darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air --impure";
           nixcfg = "code ~/.dotfiles";
           nixgc = "nix-collect-garbage -d";
           nixdu = "du -shx /nix/store ";
+          c = "code .";
           e = "zellij attach ebn || zellij -s ebn";
           ee = "zellij attach ebn-nixos || zellij -s ebn-nixos";
           eee = "zellij attach misc || zellij -s misc";
           zls = "zellij list-sessions";
+          ga = "git add -p";
         };
         history = {
           append = true;
