@@ -51,12 +51,13 @@
 
       programs.git = {
         enable = true;
+        diff-so-fancy.enable = true;
         userName = "Gasper Vozel";
         userEmail = secrets.email;
         extraConfig = {
-          core = {
-            editor = "code --wait";
-          };
+          # core = {
+          #   editor = "code --wait";
+          # };
           diff = {
             tool = "diffmerge";
           };
@@ -148,6 +149,29 @@
               echo "* Successfully edited /etc/hosts"
               sudo dscacheutil -flushcache && echo "* Flushed local DNS cache"
           }        
+        '';
+        initExtra = ''
+          # Clear terminal after 3 consecutive empty commands
+          export EMPTY_ENTER_COUNT=0
+
+          precmd() {
+            if [[ -z $LAST_COMMAND ]]; then
+              ((EMPTY_ENTER_COUNT++))
+            else
+              EMPTY_ENTER_COUNT=0
+            fi
+
+            if [[ $EMPTY_ENTER_COUNT -ge 3 ]]; then
+              clear
+              EMPTY_ENTER_COUNT=0
+            fi
+
+            LAST_COMMAND=""
+          }
+
+          preexec() {
+            LAST_COMMAND=$1
+          }
         '';
       };
 
