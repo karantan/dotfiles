@@ -28,7 +28,10 @@
         pkgs.cachix
         pkgs.python3
         pkgs.go
+        pkgs.heroku
+        pkgs.redis
         pkgs.cloc
+        pkgs.parallel # GNU parallel for running shell commands in parallel
       ];
 
       programs.direnv = {
@@ -55,9 +58,9 @@
         userName = "Gasper Vozel";
         userEmail = secrets.email;
         extraConfig = {
-          # core = {
-          #   editor = "code --wait";
-          # };
+          core = {
+            editor = "nano";
+          };
           diff = {
             tool = "diffmerge";
           };
