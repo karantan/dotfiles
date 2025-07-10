@@ -2,14 +2,16 @@
   description = "karantan's nix-darwin system flake";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nix-darwin.url = "github:nix-darwin/nix-darwin/master";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-25.05-darwin";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nix-darwin.url = "github:LnL7/nix-darwin/nix-darwin-25.05";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
-    home-manager.url = "github:nix-community/home-manager/release-24.11";
+    home-manager.url = "github:nix-community/home-manager/release-25.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager }:
+  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, nix-darwin, home-manager }:
   let
     secrets = import /Users/karantan/.dotfiles/secrets.nix;
 
@@ -24,14 +26,15 @@
 
       # Software I can't live without
       home.packages = with pkgs; [
-        (import nixpkgs { system = "aarch64-darwin"; }).devenv
+        (import nixpkgs-unstable { system = "aarch64-darwin"; }).devenv
+        (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).claude-code
+        (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).codex
         pkgs.cachix
         pkgs.python3
         pkgs.go
         pkgs.heroku
         pkgs.redis
         pkgs.cloc
-        pkgs.parallel # GNU parallel for running shell commands in parallel
       ];
 
       programs.direnv = {
@@ -42,7 +45,7 @@
         enable = true;
         settings = {
           copy_command = "pbcopy";
-          scrollback_editor = "code";
+          scrollback_editor = "cursor";
         };
       };
 
@@ -54,13 +57,13 @@
 
       programs.git = {
         enable = true;
-        diff-so-fancy.enable = true;
+        # diff-so-fancy.enable = true;
         userName = "Gasper Vozel";
         userEmail = secrets.email;
         extraConfig = {
-          core = {
-            editor = "nano";
-          };
+          # core = {
+          #   editor = "nano";
+          # };
           diff = {
             tool = "diffmerge";
           };
@@ -130,11 +133,11 @@
         shellAliases = {
           penv = ". $HOME/py3122-devenv/.venv/bin/activate";
           cat = "bat";
-          nixre = "darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air --impure";
-          nixcfg = "code ~/.dotfiles";
+          nixre = "sudo darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air --impure";
+          nixcfg = "cursor ~/.dotfiles";
           nixgc = "nix-collect-garbage -d";
           nixdu = "du -shx /nix/store ";
-          c = "code .";
+          c = "cursor .";
           e = "zellij attach ebn || zellij -s ebn";
           ee = "zellij attach ebn-nixos || zellij -s ebn-nixos";
           eee = "zellij attach misc || zellij -s misc";
@@ -145,15 +148,13 @@
           append = true;
           share = true;
         };
-        initExtraFirst = ''
+        initContent = ''
           function edithosts {
-              export EDITOR="code --wait"
+              export EDITOR="cursor --wait"
               sudo -e /etc/hosts
               echo "* Successfully edited /etc/hosts"
               sudo dscacheutil -flushcache && echo "* Flushed local DNS cache"
-          }        
-        '';
-        initExtra = ''
+          }   
           # Clear terminal after 3 consecutive empty commands
           export EMPTY_ENTER_COUNT=0
 
@@ -197,7 +198,7 @@
           text = ''
             #!/bin/bash
             # https://github.com/microsoft/vscode/issues/68579#issuecomment-463039009
-            code --wait "$@"
+            cursor --wait "$@"
             open -a Terminal
           '';
         };
@@ -259,6 +260,7 @@
       #
       # My personal settings
       #
+      system.primaryUser = "karantan";
       system.defaults.screencapture.location = "~/Downloads";
       # Enable touch ID authentication for sudo.
       security.pam.services.sudo_local.touchIdAuth = true;
