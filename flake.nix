@@ -62,7 +62,7 @@
         userEmail = secrets.email;
         extraConfig = {
           core = {
-            editor = "nano";
+            editor = "vim";
           };
           diff = {
             tool = "diffmerge";
