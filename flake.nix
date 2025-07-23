@@ -61,9 +61,9 @@
         userName = "Gasper Vozel";
         userEmail = secrets.email;
         extraConfig = {
-          # core = {
-          #   editor = "nano";
-          # };
+          core = {
+            editor = "nano";
+          };
           diff = {
             tool = "diffmerge";
           };
