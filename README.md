@@ -22,4 +22,7 @@ To apply the changes run
 nixre
 ```
 
-These 2 commands are aliases for `code ~/.dotfiles`  and `darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air --impure`. 
+To reclaim some disk space run
+```bash
+nixgc
+```

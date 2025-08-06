@@ -1,5 +1,5 @@
 {
-  description = "karantan's nix-darwin system flake";
+  description = "dmurko's nix-darwin system flake";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-25.05-darwin";
@@ -13,12 +13,12 @@
 
   outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, nix-darwin, home-manager }:
   let
-    secrets = import /Users/karantan/.dotfiles/secrets.nix;
+    secrets = import /Users/dejanmurko/.dotfiles/secrets.nix;
 
     homeconfig = { pkgs, lib, ... }: {
       # Home Manager configuration
       # https://nix-community.github.io/home-manager/
-      home.homeDirectory = lib.mkForce "/Users/karantan";
+      home.homeDirectory = lib.mkForce "/Users/dejanmurko";
       home.stateVersion = "25.05";
       programs.home-manager.enable = true;
       programs.htop.enable = true;
@@ -28,48 +28,45 @@
       home.packages = with pkgs; [
         (import nixpkgs-unstable { system = "aarch64-darwin"; }).devenv
         (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).claude-code
-        (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).codex
-        pkgs.cachix
-        pkgs.python3
-        pkgs.go
-        pkgs.heroku
-        pkgs.redis
-        pkgs.cloc
+        cachix
+        atuin
+        bat
       ];
+
+      programs.vim.enable = true;
 
       programs.direnv = {
         enable = true;
         nix-direnv.enable = true;
       };
-      programs.zellij = {
-        enable = true;
-        settings = {
-          copy_command = "pbcopy";
-          scrollback_editor = "cursor";
-        };
-      };
-
-      programs.fzf = {
-        enable = true;
-        tmux.enableShellIntegration = true;
-        enableZshIntegration = true;
-      };
 
       programs.git = {
         enable = true;
-        # diff-so-fancy.enable = true;
-        userName = "Gasper Vozel";
+        diff-so-fancy.enable = true;
+        userName = "Dejan Murko";
         userEmail = secrets.email;
+        aliases = {
+          ap = "add -p";
+          st = "status";
+          ci = "commit";
+          co = "checkout";
+          df = "diff";
+          l = "log";
+          ll = "log -p";
+          rehab = "reset origin/main --hard";
+        };
         extraConfig = {
-          # core = {
-          #   editor = "nano";
-          # };
-          diff = {
-            tool = "diffmerge";
+          branch = {
+            autosetuprebase = "always";
           };
-          github = {
-            user = "karantan";
-            token = secrets.github.token;
+          help = {
+            autocorrect = 1;
+          };
+          init = {
+            defaultBranch = "main";
+          };
+          push = {
+            default = "simple";
           };
         };
         ignores = [
@@ -91,13 +88,6 @@
           "Icon?"
           "Thumbs.db"
 
-          # Sublime
-          "sublime/*.cache"
-          "sublime/oscrypto-ca-bundle.crt"
-          "sublime/Package Control.last-run"
-          "sublime/Package Control.merged-ca-bundle"
-          "sublime/Package Control.user-ca-bundle"
-
           # VS Code
           "vscode/History/"
           "vscode/globalStorage/"
@@ -105,8 +95,22 @@
 
           # Secrets
           "ssh_config_private"
+
+          # AI tooling
+          "**/.claude/settings.local.json"
         ];
       };
+
+      programs.ssh = {
+        enable = true;
+
+        extraConfig = ''
+
+          Host *
+            IdentityAgent /Users/zupo/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data/socket.ssh
+        '';
+      };
+
 
       programs.zsh = {
         enable = true;
@@ -115,7 +119,7 @@
         oh-my-zsh = {
           enable = true;
           theme = "robbyrussell";
-          plugins = ["git" "python" "sudo" "direnv"];
+          plugins = ["git" "sudo" "direnv"];
         };
         sessionVariables = {
           LC_ALL = "en_US.UTF-8";
@@ -131,18 +135,11 @@
           PYTHONDONTWRITEBYTECODE = "0";
         };
         shellAliases = {
-          penv = ". $HOME/py3122-devenv/.venv/bin/activate";
           cat = "bat";
-          nixre = "sudo darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air --impure";
+          nixre = "sudo darwin-rebuild switch --flake ~/.dotfiles#Dejans-Air --impure";
           nixcfg = "cursor ~/.dotfiles";
           nixgc = "nix-collect-garbage -d";
           nixdu = "du -shx /nix/store ";
-          c = "cursor .";
-          e = "zellij attach ebn || zellij -s ebn";
-          ee = "zellij attach ebn-nixos || zellij -s ebn-nixos";
-          eee = "zellij attach misc || zellij -s misc";
-          zls = "zellij list-sessions";
-          ga = "git add -p";
         };
         history = {
           append = true;
@@ -155,27 +152,6 @@
               echo "* Successfully edited /etc/hosts"
               sudo dscacheutil -flushcache && echo "* Flushed local DNS cache"
           }   
-          # Clear terminal after 3 consecutive empty commands
-          export EMPTY_ENTER_COUNT=0
-
-          precmd() {
-            if [[ -z $LAST_COMMAND ]]; then
-              ((EMPTY_ENTER_COUNT++))
-            else
-              EMPTY_ENTER_COUNT=0
-            fi
-
-            if [[ $EMPTY_ENTER_COUNT -ge 3 ]]; then
-              clear
-              EMPTY_ENTER_COUNT=0
-            fi
-
-            LAST_COMMAND=""
-          }
-
-          preexec() {
-            LAST_COMMAND=$1
-          }
         '';
       };
 
@@ -184,15 +160,8 @@
         text = "";
       };
 
-      # Home Manager is pretty good at managing dotfiles. The primary way to manage
-      # plain files is through 'home.file'.
+      # Create config files in ~/
       home.file = {
-        # Building this configuration will create a copy of 'dotfiles/screenrc' in
-        # the Nix store. Activating the configuration will then make '~/.screenrc' a
-        # symlink to the Nix store copy.
-        # ".screenrc".source = .dotfiles/screenrc;
-
-        # You can also set the file content immediately.
         ".editor" = {
           executable = true;
           text = ''
@@ -245,7 +214,7 @@
       ];
 
       # set netrc for automatic login processes (e.g. for cachix)
-      nix.settings.netrc-file = "/Users/karantan/.config/nix/netrc";
+      nix.settings.netrc-file = "/Users/dejanmurko/.config/nix/netrc";
 
       # Set Git commit hash for darwin-version.
       system.configurationRevision = self.rev or self.dirtyRev or null;
@@ -260,8 +229,8 @@
       #
       # My personal settings
       #
-      system.primaryUser = "karantan";
-      system.defaults.screencapture.location = "~/Downloads";
+      # system.primaryUser = "dejanmurko";
+      # system.defaults.screencapture.location = "~/Downloads";
       # Enable touch ID authentication for sudo.
       security.pam.services.sudo_local.touchIdAuth = true;
       #
@@ -271,21 +240,21 @@
   in
   {
     # Build darwin flake using:
-    # $ darwin-rebuild build --flake .#MacBook-Air
-    darwinConfigurations."MacBook-Air" = nix-darwin.lib.darwinSystem {
+    # $ darwin-rebuild build --flake .#Dejans-Air
+    darwinConfigurations."Dejans-Air" = nix-darwin.lib.darwinSystem {
       modules = [
         configuration
         home-manager.darwinModules.home-manager  {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
-            home-manager.users.karantan = homeconfig;
+            home-manager.users.dejanmurko = homeconfig;
             home-manager.backupFileExtension = ".backup";
         }
       ];
     };
 
     # Expose the package set, including overlays, for convenience.
-    darwinPackages = self.darwinConfigurations."MacBook-Air".pkgs;
+    darwinPackages = self.darwinConfigurations."Dejans-Air".pkgs;
 
     # Support using parts of the config elsewhere
     homeconfig = homeconfig;
