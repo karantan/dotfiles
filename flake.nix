@@ -139,13 +139,14 @@
           nixcfg = "cursor ~/.dotfiles";
           nixgc = "nix-collect-garbage -d";
           nixdu = "du -shx /nix/store ";
+          history = "atuin search -i";
         };
         history = {
           append = true;
           share = true;
         };
         initContent = ''
-          eval "$(atuin init zsh)"
+          eval "$(atuin init zsh --disable-up-arrow)"
 
           function edithosts {
               export EDITOR="cursor --wait"
