@@ -60,7 +60,7 @@
             autosetuprebase = "always";
           };
           help = {
-            autocorrect = 1;
+            autocorrect = 20;
           };
           init = {
             defaultBranch = "main";
@@ -105,9 +105,8 @@
         enable = true;
 
         extraConfig = ''
-
           Host *
-            IdentityAgent /Users/zupo/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data/socket.ssh
+            IdentityAgent /Users/dejanmurko/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data/socket.ssh
         '';
       };
 
@@ -146,6 +145,8 @@
           share = true;
         };
         initContent = ''
+          eval "$(atuin init zsh)"
+
           function edithosts {
               export EDITOR="cursor --wait"
               sudo -e /etc/hosts
@@ -175,9 +176,47 @@
       
     };
     configuration = { pkgs, ... }: {
+      # Enable touch ID authentication for sudo.
+      security.pam.services.sudo_local.touchIdAuth = true;
+
+      # make sure firewall is up & running
+      system.defaults.alf.globalstate = 1;
+      system.defaults.alf.stealthenabled = 1;
+
+        # Personalization
+        system.primaryUser = "dejanmurko";
+        networking.hostName = "Dejans-Air";
+        system.defaults.dock.autohide = true;
+        system.defaults.dock.orientation = "left";
+        system.defaults.dock.tilesize = 40;
+        system.defaults.finder._FXShowPosixPathInTitle = true;
+        system.defaults.finder.AppleShowAllExtensions = true;
+        system.defaults.finder.AppleShowAllFiles = false;
+        system.defaults.finder.ShowPathbar = true;
+        system.defaults.finder.ShowStatusBar = true;
+        system.defaults.finder.FXPreferredViewStyle = "clmv";
+        system.defaults.loginwindow.GuestEnabled = false;
+        system.defaults.finder.FXDefaultSearchScope = "SCcf"; # search current folder by default
+        system.defaults.NSGlobalDomain.AppleShowScrollBars = "Always";
+        system.defaults.NSGlobalDomain.AppleScrollerPagingBehavior = true;
+        system.defaults.finder.FXEnableExtensionChangeWarning = false;
+        system.defaults.NSGlobalDomain.InitialKeyRepeat = 15;
+        system.defaults.NSGlobalDomain.KeyRepeat = 2;
+        system.defaults.NSGlobalDomain.AppleKeyboardUIMode = 3;
+        system.defaults.NSGlobalDomain.NSNavPanelExpandedStateForSaveMode = true;
+        system.defaults.NSGlobalDomain.NSNavPanelExpandedStateForSaveMode2 = true;
+        system.defaults.NSGlobalDomain.NSTableViewDefaultSizeMode = 2;
+        system.defaults.NSGlobalDomain.PMPrintingExpandedStateForPrint = true;
+        system.defaults.NSGlobalDomain.PMPrintingExpandedStateForPrint2 = true;
+        system.defaults.trackpad.FirstClickThreshold = 0;
+        system.defaults.trackpad.SecondClickThreshold = 0;
+        system.keyboard.enableKeyMapping = true;
+        system.keyboard.nonUS.remapTilde = true;
+        system.defaults.screencapture.disable-shadow = false;
+        system.defaults.screensaver.askForPasswordDelay = 1;
+
       # Use nix from pinned nixpkgs
-      # services.nix-daemon.enable = true;
-      nix.settings.trusted-users = [ "@admin" ];
+      nix.settings.trusted-users = [ "@admin dejanmurko" ];
       nix.package = pkgs.nix;
 
       # Using flakes instead of channels
@@ -191,12 +230,6 @@
 
       # Longer log output on errors
       nix.settings.log-lines = 25;
-
-      # List packages installed in system profile. To search by name, run:
-      # $ nix-env -qaP | grep wget
-      environment.systemPackages =
-        [ 
-        ];
 
       # Necessary for using flakes on this system.
       nix.settings.experimental-features = "nix-command flakes";
@@ -225,17 +258,6 @@
 
       # The platform the configuration will be used on.
       nixpkgs.hostPlatform = "aarch64-darwin";
-
-      #
-      # My personal settings
-      #
-      # system.primaryUser = "dejanmurko";
-      # system.defaults.screencapture.location = "~/Downloads";
-      # Enable touch ID authentication for sudo.
-      security.pam.services.sudo_local.touchIdAuth = true;
-      #
-      # End of my personal settings
-      #
     };
   in
   {
