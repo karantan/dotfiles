@@ -221,6 +221,7 @@
 
       # Using flakes instead of channels
       nix.settings.nix-path = ["nixpkgs=flake:nixpkgs"];
+      nix.channel.enable = false;
 
       # Allow licensed binaries
       nixpkgs.config.allowUnfree = true;
