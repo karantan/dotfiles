@@ -198,7 +198,7 @@
         system.defaults.finder.FXPreferredViewStyle = "clmv";
         system.defaults.loginwindow.GuestEnabled = false;
         system.defaults.finder.FXDefaultSearchScope = "SCcf"; # search current folder by default
-        system.defaults.NSGlobalDomain.AppleShowScrollBars = "Always";
+        system.defaults.NSGlobalDomain.AppleShowScrollBars = "WhenScrolling";
         system.defaults.NSGlobalDomain.AppleScrollerPagingBehavior = true;
         system.defaults.finder.FXEnableExtensionChangeWarning = false;
         system.defaults.NSGlobalDomain.InitialKeyRepeat = 15;
