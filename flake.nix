@@ -136,7 +136,7 @@
         shellAliases = {
           cat = "bat";
           nixre = "sudo darwin-rebuild switch --flake ~/.dotfiles#Dejans-Air --impure";
-          nixcfg = "cursor ~/.dotfiles";
+          nixcfg = "code ~/.dotfiles";
           nixgc = "nix-collect-garbage -d";
           nixdu = "du -shx /nix/store ";
           history = "atuin search -i";
@@ -149,7 +149,7 @@
           eval "$(atuin init zsh --disable-up-arrow)"
 
           function edithosts {
-              export EDITOR="cursor --wait"
+              export EDITOR="code --wait"
               sudo -e /etc/hosts
               echo "* Successfully edited /etc/hosts"
               sudo dscacheutil -flushcache && echo "* Flushed local DNS cache"
@@ -169,7 +169,7 @@
           text = ''
             #!/bin/bash
             # https://github.com/microsoft/vscode/issues/68579#issuecomment-463039009
-            cursor --wait "$@"
+            code --wait "$@"
             open -a Terminal
           '';
         };
