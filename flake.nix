@@ -190,7 +190,7 @@
         system.defaults.dock.autohide = true;
         system.defaults.dock.orientation = "left";
         system.defaults.dock.tilesize = 40;
-        system.defaults.finder._FXShowPosixPathInTitle = true;
+        system.defaults.finder._FXShowPosixPathInTitle = false;
         system.defaults.finder.AppleShowAllExtensions = true;
         system.defaults.finder.AppleShowAllFiles = false;
         system.defaults.finder.ShowPathbar = true;
