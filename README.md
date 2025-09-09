@@ -26,3 +26,10 @@ To reclaim some disk space run
 ```bash
 nixgc
 ```
+## Update
+
+```
+cd ~/.dotfiles
+nix flake update
+nixre
+```
