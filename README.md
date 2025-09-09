@@ -38,7 +38,7 @@ Run
 nix flake update
 ```
 
-Then
+Activate Privileges. Then
 ```
 nixre
 ```
