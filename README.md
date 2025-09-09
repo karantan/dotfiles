@@ -42,3 +42,12 @@ Activate Privileges. Then
 ```
 nixre
 ```
+
+## Commit changes
+
+Open dotfiles in Code
+```
+code ~/.dotfiles
+```
+
+Commit changes via Code to GitHub.
