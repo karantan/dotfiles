@@ -28,8 +28,17 @@ nixgc
 ```
 ## Update
 
+Go to
 ```
 cd ~/.dotfiles
+```
+
+Run
+```
 nix flake update
+```
+
+Then
+```
 nixre
 ```
