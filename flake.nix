@@ -18,6 +18,8 @@
     homeconfig = { pkgs, lib, ... }: {
       # Home Manager configuration
       # https://nix-community.github.io/home-manager/
+      # Options:
+      # https://nix-community.github.io/home-manager/options.xhtml
       home.homeDirectory = lib.mkForce "/Users/karantan";
       home.stateVersion = "25.05";
       programs.home-manager.enable = true;
@@ -38,6 +40,7 @@
       ];
 
       programs.direnv = {
+        package=(import nixpkgs-unstable { system = "aarch64-darwin"; }).direnv;
         enable = true;
         nix-direnv.enable = true;
       };
@@ -45,7 +48,7 @@
         enable = true;
         settings = {
           copy_command = "pbcopy";
-          scrollback_editor = "cursor";
+          scrollback_editor = "code";
         };
       };
 
@@ -134,15 +137,17 @@
           penv = ". $HOME/py3122-devenv/.venv/bin/activate";
           cat = "bat";
           nixre = "sudo darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air --impure";
-          nixcfg = "cursor ~/.dotfiles";
+          nixcfg = "code ~/.dotfiles";
           nixgc = "nix-collect-garbage -d";
           nixdu = "du -shx /nix/store ";
-          c = "cursor .";
+          c = "code .";
+          cc = "cursor .";
           e = "zellij attach ebn || zellij -s ebn";
           ee = "zellij attach ebn-nixos || zellij -s ebn-nixos";
           eee = "zellij attach misc || zellij -s misc";
           zls = "zellij list-sessions";
           ga = "git add -p";
+          cruncher = "code --remote ssh-remote+cruncher /home/karantan/ebn-nixos";
         };
         history = {
           append = true;
@@ -150,7 +155,7 @@
         };
         initContent = ''
           function edithosts {
-              export EDITOR="cursor --wait"
+              export EDITOR="code --wait"
               sudo -e /etc/hosts
               echo "* Successfully edited /etc/hosts"
               sudo dscacheutil -flushcache && echo "* Flushed local DNS cache"
@@ -198,12 +203,12 @@
           text = ''
             #!/bin/bash
             # https://github.com/microsoft/vscode/issues/68579#issuecomment-463039009
-            cursor --wait "$@"
+            code --wait "$@"
             open -a Terminal
           '';
         };
       };
-      
+
     };
     configuration = { pkgs, ... }: {
       # Use nix from pinned nixpkgs
