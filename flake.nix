@@ -31,12 +31,12 @@
         (import nixpkgs-unstable { system = "aarch64-darwin"; }).devenv
         (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).claude-code
         (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).codex
+        (import nixpkgs-unstable { system = "aarch64-darwin"; }).heroku
+        (import nixpkgs-unstable { system = "aarch64-darwin"; }).nixos-anywhere
         pkgs.cachix
         pkgs.python3
         pkgs.go
-        pkgs.heroku
         pkgs.redis
-        pkgs.cloc
       ];
 
       programs.direnv = {
