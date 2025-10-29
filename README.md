@@ -10,7 +10,7 @@ The idea is to use only nix-darwin to control macos settings and packages. Don�
 
 Once you’ve installed and configured nix-darwin you should also add home-manager.
 
-For an example of dotfiles look at zupo’s repo.
+For an example of dotfiles look at [zupo’s repo](https://github.com/zupo/dotfiles).
 
 ## Commands
 
