@@ -45,9 +45,10 @@ nixre
 
 ## Commit changes
 
-Open dotfiles in Code
+Open dotfiles in Code/Cursor
+
 ```
-code ~/.dotfiles
+cursor ~/.dotfiles
 ```
 
 Commit changes via Code to GitHub.
