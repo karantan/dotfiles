@@ -2,7 +2,9 @@
 
 This are my dotfiles. Well actually this is my nix-darwin config which also contains dotfiles.
 
-To install nix-darwin I’ve followed these instructions: Setting up Nix on macOS. Install nix using Determinate System’s shell installer BUT select Nix from the official nixos.org repo and not Determinate Nix.
+To install nix-darwin I’ve followed these instructions: 
+- Setting up Nix on macOS.
+- Install nix using Determinate System’s shell installer BUT select Nix from the official nixos.org repo and not Determinate Nix.
 
 The idea is to use only nix-darwin to control macos settings and packages. Don’t use homebrew (because with this setup you won’t need it).
 
