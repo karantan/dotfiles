@@ -36,6 +36,7 @@
       programs.vim.enable = true;
 
       programs.direnv = {
+        package=(import nixpkgs-unstable { system = "aarch64-darwin"; }).direnv;
         enable = true;
         nix-direnv.enable = true;
       };
@@ -174,7 +175,7 @@
           '';
         };
       };
-      
+
     };
     configuration = { pkgs, ... }: {
       # Enable touch ID authentication for sudo.
