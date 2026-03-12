@@ -37,6 +37,10 @@
         pkgs.python3
         pkgs.go
         pkgs.redis
+        pkgs.nixfmt-rfc-style
+        pkgs.pdsh # High-performance, parallel remote shell utility
+        pkgs.gh # github cli
+        pkgs.texliveSmall # latex support
       ];
 
       programs.direnv = {
@@ -211,6 +215,15 @@
 
     };
     configuration = { pkgs, ... }: {
+      # Determinate uses its own daemon to manage the Nix installation that
+      # conflicts with nix-darwin’s native Nix management.
+      # To turn off nix-darwin’s management of the Nix installation, set:
+      nix.enable = false;
+
+      # Save disk space
+      # Can't be used with nix.enable = false
+      # nix.optimise.automatic = true;
+
       # Use nix from pinned nixpkgs
       # services.nix-daemon.enable = true;
       nix.settings.trusted-users = [ "@admin" ];
@@ -221,9 +234,6 @@
 
       # Allow licensed binaries
       nixpkgs.config.allowUnfree = true;
-
-      # Save disk space
-      nix.optimise.automatic = true;
 
       # Longer log output on errors
       nix.settings.log-lines = 25;
