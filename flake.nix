@@ -32,7 +32,6 @@
         (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).claude-code
         (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).codex
         (import nixpkgs-unstable { system = "aarch64-darwin"; }).heroku
-        (import nixpkgs-unstable { system = "aarch64-darwin"; }).nixos-anywhere
         pkgs.cachix
         pkgs.python3
         pkgs.go
@@ -141,7 +140,7 @@
           penv = ". $HOME/py3122-devenv/.venv/bin/activate";
           cat = "bat";
           nixre = "sudo darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air --impure";
-          nixcfg = "code ~/.dotfiles";
+          nixcfg = "cursor ~/.dotfiles";
           nixgc = "nix-collect-garbage -d";
           nixdu = "du -shx /nix/store ";
           c = "code .";
