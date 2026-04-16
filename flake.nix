@@ -40,6 +40,7 @@
         pkgs.pdsh # High-performance, parallel remote shell utility
         pkgs.gh # github cli
         pkgs.texliveSmall # latex support
+        pkgs.pgcli # postgres cli
       ];
 
       programs.direnv = {
@@ -60,6 +61,19 @@
         tmux.enableShellIntegration = true;
         enableZshIntegration = true;
       };
+
+      # NOTE: when ghostty is available on macos
+      # programs.ghostty = {
+      #   enable = true;
+      #   settings = {
+      #     theme = "Catppuccin Frappe";
+      #     keybind = [
+      #       "ctrl+`=toggle_quick_terminal"
+      #       "super+right=goto_window:next"
+      #       "super+left=goto_window:previous"
+      #     ];
+      #   };
+      # };
 
       programs.git = {
         enable = true;
@@ -208,6 +222,14 @@
             # https://github.com/microsoft/vscode/issues/68579#issuecomment-463039009
             code --wait "$@"
             open -a Terminal
+          '';
+        };
+        ".config/ghostty/config" = {
+          text = ''
+            theme = Catppuccin Frappe
+            keybind = ctrl+`=toggle_quick_terminal
+            keybind = super+right=goto_window:next
+            keybind = super+left=goto_window:previous
           '';
         };
       };
