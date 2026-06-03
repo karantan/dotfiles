@@ -28,11 +28,11 @@
 
       # Software I can't live without
       home.packages = with pkgs; [
-        (import nixpkgs-unstable { system = "aarch64-darwin"; }).devenv
         (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).claude-code
         (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).codex
-        (import nixpkgs-unstable { system = "aarch64-darwin"; }).heroku
-        (import nixpkgs-unstable { system = "aarch64-darwin"; }).go
+        pkgs.devenv
+        pkgs.heroku
+        pkgs.go
         pkgs.cachix
         pkgs.python3
         pkgs.redis
