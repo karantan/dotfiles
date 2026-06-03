@@ -2,11 +2,11 @@
   description = "karantan's nix-darwin system flake";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-25.05-darwin";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-26.05-darwin";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nix-darwin.url = "github:LnL7/nix-darwin/nix-darwin-25.05";
+    nix-darwin.url = "github:LnL7/nix-darwin/nix-darwin-26.05";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
-    home-manager.url = "github:nix-community/home-manager/release-25.05";
+    home-manager.url = "github:nix-community/home-manager/release-26.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
   };
@@ -32,9 +32,9 @@
         (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).claude-code
         (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).codex
         (import nixpkgs-unstable { system = "aarch64-darwin"; }).heroku
+        (import nixpkgs-unstable { system = "aarch64-darwin"; }).go
         pkgs.cachix
         pkgs.python3
-        pkgs.go
         pkgs.redis
         pkgs.nixfmt-rfc-style
         pkgs.pdsh # High-performance, parallel remote shell utility
@@ -151,7 +151,7 @@
           PYTHONDONTWRITEBYTECODE = "0";
         };
         shellAliases = {
-          penv = ". $HOME/py3122-devenv/.venv/bin/activate";
+          penv = "cd $HOME/py3122 && source .devenv/state/venv/bin/activate";
           cat = "bat";
           nixre = "sudo darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air --impure";
           nixcfg = "cursor ~/.dotfiles";
