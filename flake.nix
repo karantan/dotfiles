@@ -15,13 +15,19 @@
   let
     secrets = import /Users/karantan/.dotfiles/secrets.nix;
 
-    homeconfig = { pkgs, lib, ... }: {
+    homeconfig = { pkgs, lib, config, ... }: {
       # Home Manager configuration
       # https://nix-community.github.io/home-manager/
       # Options:
       # https://nix-community.github.io/home-manager/options.xhtml
       home.homeDirectory = lib.mkForce "/Users/karantan";
       home.stateVersion = "25.05";
+
+      # Put ~/.local/bin on PATH so the `zed` symlink (see home.file below) is
+      # picked up by the shell. Home Manager writes this into hm-session-vars.sh,
+      # which ~/.zshenv sources for every shell.
+      home.sessionPath = [ "$HOME/.local/bin" ];
+
       programs.home-manager.enable = true;
       programs.htop.enable = true;
       programs.bat.enable = true;
@@ -52,7 +58,7 @@
         enable = true;
         settings = {
           copy_command = "pbcopy";
-          scrollback_editor = "code";
+          scrollback_editor = "zed";
         };
       };
 
@@ -154,17 +160,17 @@
           penv = "cd $HOME/py3122 && source .devenv/state/venv/bin/activate";
           cat = "bat";
           nixre = "sudo darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air --impure";
-          nixcfg = "cursor ~/.dotfiles";
+          nixcfg = "zed ~/.dotfiles";
           nixgc = "nix-collect-garbage -d";
           nixdu = "du -shx /nix/store ";
-          c = "code .";
-          cc = "cursor .";
+          c = "zed .";
           e = "zellij attach ebn || zellij -s ebn";
           ee = "zellij attach ebn-nixos || zellij -s ebn-nixos";
           eee = "zellij attach misc || zellij -s misc";
           zls = "zellij list-sessions";
           ga = "git add -p";
-          cruncher = "code --remote ssh-remote+cruncher /home/karantan/ebn-nixos";
+          cruncher = "zed ssh://cruncher/home/karantan/ebn-nixos";
+          pgcli = "pgcli --auto-vertical-output";
         };
         history = {
           append = true;
@@ -172,7 +178,7 @@
         };
         initContent = ''
           function edithosts {
-              export EDITOR="code --wait"
+              export EDITOR="zed --wait"
               sudo -e /etc/hosts
               echo "* Successfully edited /etc/hosts"
               sudo dscacheutil -flushcache && echo "* Flushed local DNS cache"
@@ -219,11 +225,12 @@
           executable = true;
           text = ''
             #!/bin/bash
-            # https://github.com/microsoft/vscode/issues/68579#issuecomment-463039009
-            code --wait "$@"
-            open -a Terminal
+            zed --wait "$@"
           '';
         };
+        # Expose the `zed` command from the manually-installed Zed.app.
+        ".local/bin/zed".source =
+          config.lib.file.mkOutOfStoreSymlink "/Applications/Zed.app/Contents/MacOS/cli";
         ".config/ghostty/config" = {
           text = ''
             theme = Catppuccin Frappe

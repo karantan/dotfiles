@@ -23,3 +23,15 @@ nixre
 ```
 
 These 2 commands are aliases for `code ~/.dotfiles`  and `darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air --impure`. 
+
+---
+
+
+
+# Fix SSL certificates
+sudo mkdir -p /etc/ssl/certs
+sudo rm -f /etc/ssl/certs/ca-certificates.crt
+sudo ln -s /nix/var/nix/profiles/default/etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
+
+# Rebuild the system
+sudo nix run nix-darwin -- switch --flake . --impure
