@@ -15,7 +15,19 @@
   let
     secrets = import /Users/karantan/.dotfiles/secrets.nix;
 
-    homeconfig = { pkgs, lib, config, ... }: {
+    homeconfig = { pkgs, lib, config, ... }:
+    let
+      # Bundle the Warcraft peon .ogg sounds into the Nix store so hooks can
+      # reference a stable path.
+      peonSounds = pkgs.stdenvNoCC.mkDerivation {
+        name = "peon-sounds";
+        src = ./sounds;
+        installPhase = ''
+          mkdir -p $out
+          cp *.ogg $out/
+        '';
+      };
+    in {
       # Home Manager configuration
       # https://nix-community.github.io/home-manager/
       # Options:
@@ -238,6 +250,23 @@
             keybind = super+right=goto_window:next
             keybind = super+left=goto_window:previous
           '';
+        };
+
+        # Claude Code settings. Play a random Warcraft peon sound whenever Claude
+        # stops and is waiting for input (i.e. done with work).
+        ".claude/settings.json" = {
+          text = builtins.toJSON {
+            hooks.Stop = [
+              {
+                hooks = [
+                  {
+                    type = "command";
+                    command = "afplay $(ls ${peonSounds}/*.ogg | sort -R | head -1) &";
+                  }
+                ];
+              }
+            ];
+          };
         };
       };
 
