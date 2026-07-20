@@ -268,11 +268,13 @@
                 hooks = [
                   {
                     type = "command";
-                    # Run afplay in the foreground (no `&`): Claude Code tears
-                    # down the hook's process tree once the command returns, which
-                    # would kill a backgrounded afplay mid-clip. Blocking for the
-                    # ~1s sound lets it play to completion.
-                    command = "afplay $(ls ${peonSounds}/*.ogg | sort -R | head -1)";
+                    # Claude Code kills the hook's process tree at end-of-turn,
+                    # which truncates afplay whether it runs backgrounded or in
+                    # the foreground. Detach into a new session via perl's setsid
+                    # so afplay lives in its own process group and survives the
+                    # killpg, playing the clip to completion. Both binaries are
+                    # macOS built-ins, so PATH inside the hook doesn't matter.
+                    command = "/usr/bin/perl -e 'use POSIX; exit if fork; POSIX::setsid(); exec @ARGV' /usr/bin/afplay \"$(ls ${peonSounds}/*.ogg | sort -R | head -1)\"";
                   }
                 ];
               }
