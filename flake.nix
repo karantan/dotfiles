@@ -268,7 +268,11 @@
                 hooks = [
                   {
                     type = "command";
-                    command = "afplay $(ls ${peonSounds}/*.ogg | sort -R | head -1) &";
+                    # Run afplay in the foreground (no `&`): Claude Code tears
+                    # down the hook's process tree once the command returns, which
+                    # would kill a backgrounded afplay mid-clip. Blocking for the
+                    # ~1s sound lets it play to completion.
+                    command = "afplay $(ls ${peonSounds}/*.ogg | sort -R | head -1)";
                   }
                 ];
               }
