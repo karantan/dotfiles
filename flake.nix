@@ -29,6 +29,9 @@
       home.sessionPath = [ "$HOME/.local/bin" ];
 
       programs.home-manager.enable = true;
+      manual.manpages.enable = false;
+      manual.html.enable = false;
+      manual.json.enable = false;
       programs.htop.enable = true;
       programs.bat.enable = true;
 
@@ -42,7 +45,7 @@
         pkgs.cachix
         pkgs.python3
         pkgs.redis
-        pkgs.nixfmt-rfc-style
+        pkgs.nixfmt
         pkgs.pdsh # High-performance, parallel remote shell utility
         pkgs.gh # github cli
         pkgs.texliveSmall # latex support
@@ -84,9 +87,11 @@
       programs.git = {
         enable = true;
         # diff-so-fancy.enable = true;
-        userName = "Gasper Vozel";
-        userEmail = secrets.email;
-        extraConfig = {
+        settings = {
+          user = {
+            name = "Gasper Vozel";
+            email = secrets.email;
+          };
           core = {
             editor = "vim";
           };
@@ -237,6 +242,8 @@
             keybind = ctrl+`=toggle_quick_terminal
             keybind = super+right=goto_window:next
             keybind = super+left=goto_window:previous
+            working-directory = home
+            window-inherit-working-directory = false
           '';
         };
       };
