@@ -253,10 +253,10 @@
         };
 
         # Claude Code settings. Play a random Warcraft peon sound whenever Claude
-        # stops and is waiting for input (i.e. done with work).
+        # sends a notification (needs permission or has been waiting for input).
         ".claude/settings.json" = {
           text = builtins.toJSON {
-            hooks.Stop = [
+            hooks.Notification = [
               {
                 hooks = [
                   {
