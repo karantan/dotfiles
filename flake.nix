@@ -27,6 +27,11 @@
           cp *.ogg $out/
         '';
       };
+
+      # rtk ("Rust Token Killer") compresses the output of ~100 common dev
+      # commands (git, ls, cat, grep, pytest, ...) before an agent sees it,
+      # cutting token use by 60-90%. Track unstable — it releases often.
+      rtkPkg = (import nixpkgs-unstable { system = "aarch64-darwin"; }).rtk;
     in {
       # Home Manager configuration
       # https://nix-community.github.io/home-manager/
@@ -62,6 +67,7 @@
         pkgs.gh # github cli
         pkgs.texliveSmall # latex support
         pkgs.pgcli # postgres cli
+        rtkPkg # token-compressing CLI proxy for coding agents
       ];
 
       programs.direnv = {
@@ -259,10 +265,27 @@
           '';
         };
 
-        # Claude Code settings. Play a random Warcraft peon sound whenever Claude
-        # stops and is waiting for input (i.e. done with work).
+        # Claude Code settings.
         ".claude/settings.json" = {
           text = builtins.toJSON {
+            # Route every Bash tool call through rtk, which rewrites e.g.
+            # `git status` to `rtk git status` before it runs. This is what
+            # `rtk init -g` would install, but that patches settings.json in
+            # place and this file is a read-only Nix store symlink.
+            hooks.PreToolUse = [
+              {
+                matcher = "Bash";
+                hooks = [
+                  {
+                    type = "command";
+                    command = "${rtkPkg}/bin/rtk hook claude";
+                  }
+                ];
+              }
+            ];
+
+            # Play a random Warcraft peon sound whenever Claude stops and is
+            # waiting for input (i.e. done with work).
             hooks.Stop = [
               {
                 hooks = [
