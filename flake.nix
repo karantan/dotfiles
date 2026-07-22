@@ -302,6 +302,23 @@
                 ];
               }
             ];
+
+            # Register extra plugin marketplaces, so /plugin can install from
+            # them without a manual `/plugin marketplace add` first.
+            extraKnownMarketplaces = {
+              hakuto = {
+                source = {
+                  source = "github";
+                  repo = "teamniteo/hakuto";
+                };
+              };
+            };
+
+            # Turn the plugins on. Without this the marketplace is merely known,
+            # not installed.
+            enabledPlugins = {
+              "hakuto@hakuto" = true;
+            };
           };
         };
       };
