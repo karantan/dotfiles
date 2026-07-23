@@ -13,7 +13,13 @@
 
   outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, nix-darwin, home-manager }:
   let
-    secrets = import /Users/karantan/.dotfiles/secrets.nix;
+    # Instantiate nixpkgs-unstable exactly once. Every `import nixpkgs-unstable
+    # { ... }` is a full, independent nixpkgs evaluation, so per-package imports
+    # make each rebuild slower and let allowUnfree drift between call sites.
+    pkgsUnstable = import nixpkgs-unstable {
+      system = "aarch64-darwin";
+      config.allowUnfree = true;
+    };
 
     homeconfig = { pkgs, lib, config, ... }:
     let
@@ -27,11 +33,6 @@
           cp *.ogg $out/
         '';
       };
-
-      # rtk ("Rust Token Killer") compresses the output of ~100 common dev
-      # commands (git, ls, cat, grep, pytest, ...) before an agent sees it,
-      # cutting token use by 60-90%. Track unstable — it releases often.
-      rtkPkg = (import nixpkgs-unstable { system = "aarch64-darwin"; }).rtk;
     in {
       # Home Manager configuration
       # https://nix-community.github.io/home-manager/
@@ -53,9 +54,9 @@
       programs.bat.enable = true;
 
       # Software I can't live without
+      # (claude-code is installed by programs.claude-code below.)
       home.packages = with pkgs; [
-        (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).claude-code
-        (import nixpkgs-unstable { system = "aarch64-darwin"; config.allowUnfree = true; }).codex
+        pkgsUnstable.codex
         pkgs.devenv
         pkgs.heroku
         pkgs.go
@@ -67,11 +68,14 @@
         pkgs.gh # github cli
         pkgs.texliveSmall # latex support
         pkgs.pgcli # postgres cli
-        rtkPkg # token-compressing CLI proxy for coding agents
+        # rtk ("Rust Token Killer") compresses the output of ~100 common dev
+        # commands (git, ls, cat, grep, pytest, ...) before an agent sees it,
+        # cutting token use by 60-90%. Track unstable — it releases often.
+        pkgsUnstable.rtk
       ];
 
       programs.direnv = {
-        package=(import nixpkgs-unstable { system = "aarch64-darwin"; }).direnv;
+        package = pkgsUnstable.direnv;
         enable = true;
         nix-direnv.enable = true;
       };
@@ -89,18 +93,23 @@
         enableZshIntegration = true;
       };
 
-      # NOTE: when ghostty is available on macos
-      # programs.ghostty = {
-      #   enable = true;
-      #   settings = {
-      #     theme = "Catppuccin Frappe";
-      #     keybind = [
-      #       "ctrl+`=toggle_quick_terminal"
-      #       "super+right=goto_window:next"
-      #       "super+left=goto_window:previous"
-      #     ];
-      #   };
-      # };
+      # Ghostty.app itself is installed manually (nixpkgs marks ghostty broken
+      # on macOS), so package = null makes Home Manager manage only the config
+      # file at ~/.config/ghostty/config.
+      programs.ghostty = {
+        enable = true;
+        package = null;
+        settings = {
+          theme = "Catppuccin Frappe";
+          keybind = [
+            "ctrl+`=toggle_quick_terminal"
+            "super+right=goto_window:next"
+            "super+left=goto_window:previous"
+          ];
+          working-directory = "home";
+          window-inherit-working-directory = false;
+        };
+      };
 
       programs.git = {
         enable = true;
@@ -108,7 +117,8 @@
         settings = {
           user = {
             name = "Gasper Vozel";
-            email = secrets.email;
+            # Not a secret: this address is in the metadata of every commit.
+            email = "gv@niteo.co";
           };
           core = {
             editor = "vim";
@@ -118,8 +128,17 @@
           };
           github = {
             user = "karantan";
-            token = secrets.github.token;
           };
+          # Let gh supply credentials for https remotes. The leading "" resets
+          # any helper inherited from the system gitconfig (e.g. osxkeychain).
+          credential."https://github.com".helper = [
+            ""
+            "!${pkgs.gh}/bin/gh auth git-credential"
+          ];
+          credential."https://gist.github.com".helper = [
+            ""
+            "!${pkgs.gh}/bin/gh auth git-credential"
+          ];
         };
         ignores = [
           # Packages: it's better to unpack these files and commit the raw source
@@ -182,7 +201,7 @@
         shellAliases = {
           penv = "cd $HOME/py3122 && source .devenv/state/venv/bin/activate";
           cat = "bat";
-          nixre = "sudo darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air --impure";
+          nixre = "sudo darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air";
           nixcfg = "zed ~/.dotfiles";
           nixgc = "nix-collect-garbage -d";
           nixdu = "du -shx /nix/store ";
@@ -254,71 +273,66 @@
         # Expose the `zed` command from the manually-installed Zed.app.
         ".local/bin/zed".source =
           config.lib.file.mkOutOfStoreSymlink "/Applications/Zed.app/Contents/MacOS/cli";
-        ".config/ghostty/config" = {
-          text = ''
-            theme = Catppuccin Frappe
-            keybind = ctrl+`=toggle_quick_terminal
-            keybind = super+right=goto_window:next
-            keybind = super+left=goto_window:previous
-            working-directory = home
-            window-inherit-working-directory = false
-          '';
-        };
+      };
 
-        # Claude Code settings.
-        ".claude/settings.json" = {
-          text = builtins.toJSON {
-            # Route every Bash tool call through rtk, which rewrites e.g.
-            # `git status` to `rtk git status` before it runs. This is what
-            # `rtk init -g` would install, but that patches settings.json in
-            # place and this file is a read-only Nix store symlink.
-            hooks.PreToolUse = [
-              {
-                matcher = "Bash";
-                hooks = [
-                  {
-                    type = "command";
-                    command = "${rtkPkg}/bin/rtk hook claude";
-                  }
-                ];
-              }
-            ];
+      # Claude Code: the package (tracking unstable — it releases often) plus
+      # ~/.claude/settings.json, both managed by the Home Manager module.
+      programs.claude-code = {
+        enable = true;
+        package = pkgsUnstable.claude-code;
+        settings = {
+          # Route every Bash tool call through rtk, which rewrites e.g.
+          # `git status` to `rtk git status` before it runs. This is what
+          # `rtk init -g` would install, but that patches settings.json in
+          # place and this file is a read-only Nix store symlink.
+          hooks.PreToolUse = [
+            {
+              matcher = "Bash";
+              hooks = [
+                {
+                  type = "command";
+                  command = "${pkgsUnstable.rtk}/bin/rtk hook claude";
+                }
+              ];
+            }
+          ];
 
-            # Play a random Warcraft peon sound whenever Claude stops and is
-            # waiting for input (i.e. done with work).
-            hooks.Stop = [
-              {
-                hooks = [
-                  {
-                    type = "command";
-                    # Claude Code kills the hook's process tree at end-of-turn,
-                    # which truncates afplay whether it runs backgrounded or in
-                    # the foreground. Detach into a new session via perl's setsid
-                    # so afplay lives in its own process group and survives the
-                    # killpg, playing the clip to completion. Both binaries are
-                    # macOS built-ins, so PATH inside the hook doesn't matter.
-                    command = "/usr/bin/perl -e 'use POSIX; exit if fork; POSIX::setsid(); exec @ARGV' /usr/bin/afplay \"$(ls ${peonSounds}/*.ogg | sort -R | head -1)\"";
-                  }
-                ];
-              }
-            ];
+          # Play a random Warcraft peon sound whenever Claude stops and is
+          # waiting for input (i.e. done with work).
+          hooks.Stop = [
+            {
+              hooks = [
+                {
+                  type = "command";
+                  # Claude Code kills the hook's process tree at end-of-turn,
+                  # which truncates afplay whether it runs backgrounded or in
+                  # the foreground. Detach into a new session via perl's setsid
+                  # so afplay lives in its own process group and survives the
+                  # killpg, playing the clip to completion. Both binaries are
+                  # macOS built-ins, so PATH inside the hook doesn't matter.
+                  command = "/usr/bin/perl -e 'use POSIX; exit if fork; POSIX::setsid(); exec @ARGV' /usr/bin/afplay \"$(ls ${peonSounds}/*.ogg | sort -R | head -1)\"";
+                }
+              ];
+            }
+          ];
 
-            # Register extra plugin marketplaces, so /plugin can install from
-            # them without a manual `/plugin marketplace add` first.
-            extraKnownMarketplaces = {
-              hakuto = {
-                source = {
-                  source = "github";
-                  repo = "teamniteo/hakuto";
-                };
+          # Register extra plugin marketplaces, so /plugin can install from
+          # them without a manual `/plugin marketplace add` first. (The
+          # module's `marketplaces` option only supports directory sources,
+          # so this github source stays in raw settings.)
+          extraKnownMarketplaces = {
+            hakuto = {
+              source = {
+                source = "github";
+                repo = "teamniteo/hakuto";
               };
             };
+          };
 
-            # Turn the plugins on. Without this the marketplace is merely known,
-            # not installed.
-            enabledPlugins = {
-              "hakuto@hakuto" = true;
-            };
+          # Turn the plugins on. Without this the marketplace is merely known,
+          # not installed.
+          enabledPlugins = {
+            "hakuto@hakuto" = true;
           };
         };
       };

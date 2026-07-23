@@ -22,7 +22,7 @@ To apply the changes run
 nixre
 ```
 
-These 2 commands are aliases for `code ~/.dotfiles`  and `darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air --impure`. 
+These 2 commands are aliases for `code ~/.dotfiles`  and `darwin-rebuild switch --flake ~/.dotfiles#MacBook-Air`. 
 
 ---
 
@@ -34,4 +34,4 @@ sudo rm -f /etc/ssl/certs/ca-certificates.crt
 sudo ln -s /nix/var/nix/profiles/default/etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
 
 # Rebuild the system
-sudo nix run nix-darwin -- switch --flake . --impure
+sudo nix run nix-darwin -- switch --flake .
