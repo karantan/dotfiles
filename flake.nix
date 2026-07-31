@@ -146,6 +146,7 @@
         # commands (git, ls, cat, grep, pytest, ...) before an agent sees it,
         # cutting token use by 60-90%. Track unstable — it releases often.
         pkgsUnstable.rtk
+        pkgs.bun # for hakuto
       ];
 
       programs.direnv = {
@@ -298,7 +299,7 @@
               sudo -e /etc/hosts
               echo "* Successfully edited /etc/hosts"
               sudo dscacheutil -flushcache && echo "* Flushed local DNS cache"
-          }   
+          }
           # Clear terminal after 3 consecutive empty commands
           export EMPTY_ENTER_COUNT=0
 
@@ -465,7 +466,7 @@
       # List packages installed in system profile. To search by name, run:
       # $ nix-env -qaP | grep wget
       environment.systemPackages =
-        [ 
+        [
         ];
 
       # Necessary for using flakes on this system.
