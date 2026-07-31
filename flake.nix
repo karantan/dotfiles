@@ -33,6 +33,80 @@
           cp *.ogg $out/
         '';
       };
+
+      # Stage 2 of the Claude Code notifier: the part that has to outlive the
+      # hook. Split out from claudeNotify below so stage 1 can hand it off to
+      # setsid as a single argv-taking program instead of a quoted blob.
+      #   argv: $1 = clip  $2 = title  $3 = subtitle  $4 = body  $5 = group
+      claudeNotifyEmit = pkgs.writeShellScript "claude-notify-emit" ''
+        /usr/bin/afplay "$1" &
+        ${pkgs.terminal-notifier}/bin/terminal-notifier \
+          -title "$2" -subtitle "$3" -message "$4" -group "$5" \
+          -activate com.mitchellh.ghostty >/dev/null 2>&1
+        wait
+      '';
+
+      # Stage 1: runs inside the hook, reads the event JSON off stdin and works
+      # out what to say. A banner rather than only a sound, because a sound is
+      # gone the moment it plays and NotificationCenter still has it waiting
+      # when you come back to the desk. Clicking the banner raises Ghostty.
+      #   argv: $1 = done | attention | failed
+      claudeNotify = pkgs.writeShellScript "claude-notify" ''
+        PATH="${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:/usr/bin:/bin"
+        export PATH
+
+        kind="$1"
+        payload="$(cat)"
+        jqf() { printf '%s' "$payload" | ${pkgs.jq}/bin/jq -r "$1" 2>/dev/null; }
+
+        # Which checkout this fired from — you usually have several sessions up.
+        project="$(basename "$(jqf '.cwd // ""')")"
+        [ -n "$project" ] || project="claude"
+        # Per-session group, so a session replaces its own stale banner while
+        # different sessions still stack.
+        group="claude-$(jqf '.session_id // "0"')"
+
+        # Distinct clip pools per event, so you can tell "finished" from
+        # "blocked on you" by ear without looking. The acknowledgement lines
+        # (yes, work-work, right-oh, ...) are deliberately unused: they are
+        # peon *accepting* an order, which is not what any of these events are.
+        case "$kind" in
+          done)
+            title="Work complete"
+            body="$(jqf '.last_assistant_message // ""' | grep -m1 -o '[^[:space:]].*')"
+            [ -n "$body" ] || body="Turn finished."
+            pool="work-complete ready-to-work ready-to-work2"
+            ;;
+          attention)
+            title="Needs your input"
+            body="$(jqf '.message // ""' | grep -m1 -o '[^[:space:]].*')"
+            [ -n "$body" ] || body="Claude is waiting on you."
+            pool="something-need-doing what-do-you-want more-work hmm"
+            ;;
+          failed)
+            title="Turn failed"
+            body="$(jqf '.message // ""' | grep -m1 -o '[^[:space:]].*')"
+            [ -n "$body" ] || body="The turn ended with an API error."
+            pool="hmm"
+            ;;
+          *)
+            exit 0
+            ;;
+        esac
+
+        # NotificationCenter truncates hard anyway; keep it to one short line.
+        body="$(printf '%s' "$body" | cut -c1-140)"
+        clip="${peonSounds}/$(printf '%s\n' $pool | sort -R | head -1).ogg"
+
+        # Claude Code kills the hook's process tree at end-of-turn, which
+        # truncates afplay whether it runs backgrounded or in the foreground
+        # and can cut terminal-notifier off before it reaches
+        # NotificationCenter. Detach into a new session via perl's setsid so
+        # stage 2 lives in its own process group and survives the killpg.
+        # perl and afplay are macOS built-ins, so PATH there doesn't matter.
+        exec /usr/bin/perl -e 'use POSIX; exit if fork; POSIX::setsid(); exec @ARGV' \
+          ${claudeNotifyEmit} "$clip" "$title" "$project" "$body" "$group"
+      '';
     in {
       # Home Manager configuration
       # https://nix-community.github.io/home-manager/
@@ -297,20 +371,46 @@
             }
           ];
 
-          # Play a random Warcraft peon sound whenever Claude stops and is
-          # waiting for input (i.e. done with work).
+          # Peon clip + NotificationCenter banner whenever Claude finishes a
+          # turn. See claudeNotify above for why this is two stages.
           hooks.Stop = [
             {
               hooks = [
                 {
                   type = "command";
-                  # Claude Code kills the hook's process tree at end-of-turn,
-                  # which truncates afplay whether it runs backgrounded or in
-                  # the foreground. Detach into a new session via perl's setsid
-                  # so afplay lives in its own process group and survives the
-                  # killpg, playing the clip to completion. Both binaries are
-                  # macOS built-ins, so PATH inside the hook doesn't matter.
-                  command = "/usr/bin/perl -e 'use POSIX; exit if fork; POSIX::setsid(); exec @ARGV' /usr/bin/afplay \"$(ls ${peonSounds}/*.ogg | sort -R | head -1)\"";
+                  command = "${claudeNotify} done";
+                }
+              ];
+            }
+          ];
+
+          # Same, but for a turn that died on an API error rather than
+          # finishing — otherwise the two are indistinguishable from across
+          # the room.
+          hooks.StopFailure = [
+            {
+              hooks = [
+                {
+                  type = "command";
+                  command = "${claudeNotify} failed";
+                }
+              ];
+            }
+          ];
+
+          # The one that actually saves time: Stop only fires once Claude has
+          # given up the turn, so it says nothing while Claude sits blocked on
+          # a permission prompt mid-task. The matcher filters on
+          # notification_type; the remaining types (auth_success, the
+          # elicitation_* pair, agent_completed) are noise or already covered
+          # by Stop.
+          hooks.Notification = [
+            {
+              matcher = "permission_prompt|idle_prompt|agent_needs_input";
+              hooks = [
+                {
+                  type = "command";
+                  command = "${claudeNotify} attention";
                 }
               ];
             }
