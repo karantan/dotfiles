@@ -23,14 +23,37 @@
 
     homeconfig = { pkgs, lib, config, ... }:
     let
-      # Bundle the Warcraft peon .ogg sounds into the Nix store so hooks can
-      # reference a stable path.
+      # Bundle the Warcraft peon sounds into the Nix store so hooks can
+      # reference a stable path, decoding each clip to WAV with 0.8s of
+      # trailing silence appended.
+      #
+      # The padding is load-bearing, not cosmetic. afplay queues its audio
+      # with CoreAudio and exits, and the output device powers down before
+      # the final buffers reach the speaker, so the last ~0.3s never plays:
+      # "ready to w" instead of "ready to work". Playing clips back to back
+      # hides this, because each new afplay holds the device open long
+      # enough to flush the previous one's tail -- only the last clip of a
+      # burst loses it, and a hook always plays exactly one. Padding inside
+      # the file means the dropped tail is silence.
+      #
+      # It has to be one file: a second afplay of a separate silent clip
+      # does not work, because the ~0.7s the device takes to open leaves a
+      # gap in which the tail is already gone.
       peonSounds = pkgs.stdenvNoCC.mkDerivation {
         name = "peon-sounds";
         src = ./sounds;
+        nativeBuildInputs = [ pkgs.sox ];
+        # Accepts ogg/wav/mp3 so replacement clips can be dropped into
+        # sounds/ in whatever format they were downloaded in; sox normalises
+        # all of them to padded WAV. Fails the build on an unreadable file
+        # rather than silently shipping a pool with a missing clip.
         installPhase = ''
           mkdir -p $out
-          cp *.ogg $out/
+          shopt -s nullglob
+          for f in *.ogg *.wav *.mp3; do
+            sox "$f" "$out/''${f%.*}.wav" pad 0 0.8
+          done
+          [ -n "$(ls -A $out)" ] || { echo "no sound files found in src"; exit 1; }
         '';
       };
 
@@ -39,11 +62,10 @@
       # setsid as a single argv-taking program instead of a quoted blob.
       #   argv: $1 = clip  $2 = title  $3 = subtitle  $4 = body  $5 = group
       claudeNotifyEmit = pkgs.writeShellScript "claude-notify-emit" ''
-        /usr/bin/afplay "$1" &
         ${pkgs.terminal-notifier}/bin/terminal-notifier \
           -title "$2" -subtitle "$3" -message "$4" -group "$5" \
           -activate com.mitchellh.ghostty >/dev/null 2>&1
-        wait
+        exec /usr/bin/afplay "$1"
       '';
 
       # Stage 1: runs inside the hook, reads the event JSON off stdin and works
@@ -70,12 +92,18 @@
         # "blocked on you" by ear without looking. The acknowledgement lines
         # (yes, work-work, right-oh, ...) are deliberately unused: they are
         # peon *accepting* an order, which is not what any of these events are.
+        #
+        # ready-to-work and ready-to-work2 are held out of the done pool: both
+        # rips are clipped mid-word and lose the final /k/ of "work". That is
+        # damage in the source files, not the CoreAudio tail drop the padding
+        # above fixes, so no amount of padding recovers it -- put them back
+        # once the files are replaced.
         case "$kind" in
           done)
             title="Work complete"
             body="$(jqf '.last_assistant_message // ""' | grep -m1 -o '[^[:space:]].*')"
             [ -n "$body" ] || body="Turn finished."
-            pool="work-complete ready-to-work ready-to-work2"
+            pool="work-complete"
             ;;
           attention)
             title="Needs your input"
@@ -96,14 +124,18 @@
 
         # NotificationCenter truncates hard anyway; keep it to one short line.
         body="$(printf '%s' "$body" | cut -c1-140)"
-        clip="${peonSounds}/$(printf '%s\n' $pool | sort -R | head -1).ogg"
+        clip="${peonSounds}/$(printf '%s\n' $pool | sort -R | head -1).wav"
 
-        # Claude Code kills the hook's process tree at end-of-turn, which
-        # truncates afplay whether it runs backgrounded or in the foreground
-        # and can cut terminal-notifier off before it reaches
-        # NotificationCenter. Detach into a new session via perl's setsid so
-        # stage 2 lives in its own process group and survives the killpg.
-        # perl and afplay are macOS built-ins, so PATH there doesn't matter.
+        # A padded clip keeps afplay busy for ~2.5s, most of it silence. Hand
+        # stage 2 to perl's setsid so it runs in its own session and the hook
+        # returns immediately rather than blocking the turn on audio.
+        #
+        # Note this is NOT about surviving a killpg, which is what the comment
+        # here used to claim (and 1b2a8e5's commit message with it). Measured
+        # at a real Stop hook, afplay lives its full 1.82s undisturbed; the
+        # truncation everyone was chasing was the CoreAudio tail drop that
+        # peonSounds now pads around. perl and afplay are macOS built-ins, so
+        # PATH here doesn't matter.
         exec /usr/bin/perl -e 'use POSIX; exit if fork; POSIX::setsid(); exec @ARGV' \
           ${claudeNotifyEmit} "$clip" "$title" "$project" "$body" "$group"
       '';
