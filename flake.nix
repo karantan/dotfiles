@@ -387,6 +387,28 @@
       programs.claude-code = {
         enable = true;
         package = pkgsUnstable.claude-code;
+
+        # Niteo's Grafana, per https://github.com/teamniteo/claude. The service
+        # account token is created at
+        # https://niteo.grafana.net/org/serviceaccounts and lives in 1Password.
+        #
+        # Niteo's own config expects GRAFANA_SERVICE_ACCOUNT_TOKEN in the
+        # environment, which only works when Claude Code is started from a
+        # shell. The desktop app is launched by the GUI and inherits no zsh
+        # environment, so instead we fetch the token from 1Password when the
+        # MCP server starts. Nothing secret is stored in the Nix store.
+        mcpServers.mcp-grafana.command = "${pkgs.writeShellScript "mcp-grafana-op" ''
+          set -euo pipefail
+          # Homebrew's op, not nixpkgs': only a 1Password-signed binary in a
+          # location the desktop app trusts gets the desktop-app integration
+          # (biometric unlock) instead of demanding a session token.
+          GRAFANA_SERVICE_ACCOUNT_TOKEN="$(/opt/homebrew/bin/op read --no-newline \
+            'op://Niteo Team/GRAFANA_SERVICE_ACCOUNT_TOKEN/credential')"
+          export GRAFANA_SERVICE_ACCOUNT_TOKEN
+          export GRAFANA_URL="https://niteo.grafana.net"
+          exec ${pkgsUnstable.mcp-grafana}/bin/mcp-grafana "$@"
+        ''}";
+
         settings = {
           # Route every Bash tool call through rtk, which rewrites e.g.
           # `git status` to `rtk git status` before it runs. This is what
