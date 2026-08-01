@@ -73,6 +73,59 @@
       # gone the moment it plays and NotificationCenter still has it waiting
       # when you come back to the desk. Clicking the banner raises Ghostty.
       #   argv: $1 = done | attention | failed
+      # Niteo's Grafana MCP server, per https://github.com/teamniteo/claude.
+      # The service account token is created at
+      # https://niteo.grafana.net/org/serviceaccounts and lives in 1Password.
+      #
+      # Niteo's own config expects GRAFANA_SERVICE_ACCOUNT_TOKEN in the
+      # environment, which only works when Claude Code is started from a
+      # shell. The desktop app is launched by the GUI and inherits no zsh
+      # environment, so fetch the token from 1Password when the server
+      # starts instead. Nothing secret lands in the Nix store.
+      mcpGrafana = pkgs.writeShellScript "mcp-grafana-op" ''
+        set -euo pipefail
+        # Homebrew's op, not nixpkgs': only a 1Password-signed binary in a
+        # location the desktop app trusts gets the desktop-app integration
+        # (biometric unlock) instead of demanding a session token.
+        GRAFANA_SERVICE_ACCOUNT_TOKEN="$(/opt/homebrew/bin/op read --no-newline \
+          'op://Niteo Team/GRAFANA_SERVICE_ACCOUNT_TOKEN/credential')"
+        export GRAFANA_SERVICE_ACCOUNT_TOKEN
+        export GRAFANA_URL="https://niteo.grafana.net"
+        exec ${pkgsUnstable.mcp-grafana}/bin/mcp-grafana "$@"
+      '';
+
+      # Ship that server as a one-plugin marketplace rather than through
+      # `programs.claude-code.mcpServers`. That option delivers its .mcp.json
+      # by appending `--plugin-dir` to a wrapper around the `claude` binary,
+      # which the desktop app never runs -- it launches its own bundled copy,
+      # so the server would exist only in the terminal CLI. A marketplace is
+      # registered in settings.json, which both read.
+      niteoMcpMarketplace =
+        let
+          plugin = {
+            name = "niteo-grafana";
+            description = "Niteo's Grafana (niteo.grafana.net) as an MCP server.";
+            version = "1.0.0";
+          };
+          json = (pkgs.formats.json { }).generate;
+        in
+        pkgs.runCommand "niteo-mcp-marketplace" { } ''
+          install -Dm644 ${
+            json "marketplace.json" {
+              name = "niteo-mcp";
+              owner = {
+                name = "Niteo";
+                url = "https://github.com/teamniteo";
+              };
+              plugins = [ (plugin // { source = "./"; }) ];
+            }
+          } $out/.claude-plugin/marketplace.json
+          install -Dm644 ${json "plugin.json" plugin} $out/.claude-plugin/plugin.json
+          install -Dm644 ${
+            json "mcp.json" { mcpServers.mcp-grafana.command = "${mcpGrafana}"; }
+          } $out/.mcp.json
+        '';
+
       claudeNotify = pkgs.writeShellScript "claude-notify" ''
         PATH="${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:/usr/bin:/bin"
         export PATH
@@ -388,27 +441,6 @@
         enable = true;
         package = pkgsUnstable.claude-code;
 
-        # Niteo's Grafana, per https://github.com/teamniteo/claude. The service
-        # account token is created at
-        # https://niteo.grafana.net/org/serviceaccounts and lives in 1Password.
-        #
-        # Niteo's own config expects GRAFANA_SERVICE_ACCOUNT_TOKEN in the
-        # environment, which only works when Claude Code is started from a
-        # shell. The desktop app is launched by the GUI and inherits no zsh
-        # environment, so instead we fetch the token from 1Password when the
-        # MCP server starts. Nothing secret is stored in the Nix store.
-        mcpServers.mcp-grafana.command = "${pkgs.writeShellScript "mcp-grafana-op" ''
-          set -euo pipefail
-          # Homebrew's op, not nixpkgs': only a 1Password-signed binary in a
-          # location the desktop app trusts gets the desktop-app integration
-          # (biometric unlock) instead of demanding a session token.
-          GRAFANA_SERVICE_ACCOUNT_TOKEN="$(/opt/homebrew/bin/op read --no-newline \
-            'op://Niteo Team/GRAFANA_SERVICE_ACCOUNT_TOKEN/credential')"
-          export GRAFANA_SERVICE_ACCOUNT_TOKEN
-          export GRAFANA_URL="https://niteo.grafana.net"
-          exec ${pkgsUnstable.mcp-grafana}/bin/mcp-grafana "$@"
-        ''}";
-
         settings = {
           # Route every Bash tool call through rtk, which rewrites e.g.
           # `git status` to `rtk git status` before it runs. This is what
@@ -474,12 +506,21 @@
           # Register extra plugin marketplaces, so /plugin can install from
           # them without a manual `/plugin marketplace add` first. (The
           # module's `marketplaces` option only supports directory sources,
-          # so this github source stays in raw settings.)
+          # so this github source stays in raw settings. niteo-mcp is a
+          # directory and could use the option -- but that option *replaces*
+          # settings.extraKnownMarketplaces wholesale, which would drop
+          # hakuto, so both are written by hand here.)
           extraKnownMarketplaces = {
             hakuto = {
               source = {
                 source = "github";
                 repo = "teamniteo/hakuto";
+              };
+            };
+            niteo-mcp = {
+              source = {
+                source = "directory";
+                path = "${niteoMcpMarketplace}";
               };
             };
           };
@@ -488,6 +529,7 @@
           # not installed.
           enabledPlugins = {
             "hakuto@hakuto" = true;
+            "niteo-grafana@niteo-mcp" = true;
           };
         };
       };
