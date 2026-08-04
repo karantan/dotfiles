@@ -433,6 +433,16 @@
         # Expose the `zed` command from the manually-installed Zed.app.
         ".local/bin/zed".source =
           config.lib.file.mkOutOfStoreSymlink "/Applications/Zed.app/Contents/MacOS/cli";
+
+        # Drive Brave from a script/agent without it stealing focus. Chromium
+        # raises itself for every AppleScript *mutation* (`make new tab`,
+        # `set URL`, even `open -g`), but not for `execute … javascript` — so
+        # this keeps one minimized scratch window and navigates it from inside
+        # the page. See the Browser section of ~/.claude/CLAUDE.md.
+        ".local/bin/brave-bg" = {
+          source = ./bin/brave-bg;
+          executable = true;
+        };
       };
 
       # Claude Code: the package (tracking unstable — it releases often) plus

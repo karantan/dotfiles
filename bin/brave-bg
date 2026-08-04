@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+#
+# brave-bg — drive Brave from Claude Code without stealing focus.
+#
+# Background: Chromium raises itself whenever AppleScript *mutates* it
+# (`make new tab`, `make new window`, `set URL`, even `open -g`). But it does
+# NOT raise itself for `execute ... javascript`. So this script keeps one
+# minimized scratch window and does all navigation from inside the page
+# (`location.href = ...`), which is a read-shaped Apple Event.
+#
+# Net effect: one brief flash the first time the scratch window is created
+# (focus is restored immediately), then zero interruption after that.
+#
+# Requires: Brave → View → Developer → Allow JavaScript from Apple Events.
+#
+# Usage:
+#   brave-bg open <url>     navigate the scratch tab, wait for load
+#   brave-bg text           print document.body.innerText
+#   brave-bg html           print document.documentElement.outerHTML
+#   brave-bg js '<expr>'    evaluate JS in the scratch tab, print result
+#   brave-bg url            print current URL + title as JSON
+#   brave-bg close          close the scratch window
+#
+set -euo pipefail
+
+APP="Brave Browser"
+STATE="${XDG_CACHE_HOME:-${HOME}/.cache}/brave-bg-window"
+mkdir -p "$(dirname "$STATE")"
+
+die() { printf 'brave-bg: %s\n' "$*" >&2; exit 1; }
+
+# Wrap a shell string as a JS single-quoted string literal.
+js_str() {
+  local s=${1//\\/\\\\}
+  s=${s//\'/\\\'}
+  printf "'%s'" "$s"
+}
+
+brave_running() {
+  osascript -e "tell application \"System Events\" to (name of processes) contains \"${APP}\"" 2>/dev/null | grep -q true
+}
+
+window_exists() {
+  [[ -n "${1:-}" ]] || return 1
+  osascript - "$1" <<'AS' 2>/dev/null | grep -q true
+on run argv
+  set wid to (item 1 of argv) as integer
+  tell application "Brave Browser" to return (exists window id wid)
+end run
+AS
+}
+
+# Print the scratch window id, creating a minimized one if needed.
+ensure_window() {
+  local wid=""
+  [[ -f "$STATE" ]] && wid="$(cat "$STATE")"
+  if window_exists "$wid"; then
+    printf '%s' "$wid"
+    return
+  fi
+
+  brave_running || die "Brave is not running — start it first (launching it would steal focus)."
+
+  # The one unavoidable raise. Minimize immediately and hand focus back to
+  # whatever the user was actually using.
+  wid="$(osascript <<'AS'
+tell application "System Events" to set orig to name of first process whose frontmost is true
+tell application "Brave Browser"
+  set w to make new window
+  set wid to id of w
+  set minimized of w to true
+end tell
+-- When the minimize animation completes, macOS hands focus to the next window
+-- in line -- one of Brave's own. So don't just restore once and hope: keep
+-- re-asserting until the original app is actually frontmost again.
+-- Re-assert until the original app has been frontmost for several consecutive
+-- checks; a single match isn't enough, because Brave grabs focus again when
+-- the animation lands.
+set stable to 0
+repeat 24 times
+  delay 0.2
+  try
+    tell application "System Events"
+      if (name of first process whose frontmost is true) is orig then
+        set stable to stable + 1
+      else
+        set stable to 0
+        set frontmost of process orig to true
+      end if
+    end tell
+  end try
+  if stable is greater than or equal to 4 then exit repeat
+end repeat
+return wid
+AS
+)"
+  [[ -n "$wid" ]] || die "could not create scratch window"
+  printf '%s' "$wid" >"$STATE"
+  printf '%s' "$wid"
+}
+
+# eval_js <window-id> <javascript>
+eval_js() {
+  osascript - "$1" "$2" <<'AS'
+on run argv
+  set wid to (item 1 of argv) as integer
+  set theJS to item 2 of argv
+  tell application "Brave Browser"
+    return execute (active tab of window id wid) javascript theJS
+  end tell
+end run
+AS
+}
+
+cmd_open() {
+  local url="${1:-}" wid loaded=""
+  [[ -n "$url" ]] || die "usage: brave-bg open <url>"
+  [[ "$url" == *://* ]] || url="https://${url}"
+  wid="$(ensure_window)"
+
+  # Mark the current document, then navigate from inside it. When the marker
+  # is gone and readyState is complete, the *new* document has landed.
+  eval_js "$wid" "window.__bgnav=1; location.href=$(js_str "$url"); 1" >/dev/null 2>&1 || \
+    die "could not run JS in the scratch tab — is 'Allow JavaScript from Apple Events' enabled in Brave?"
+
+  for _ in $(seq 1 80); do
+    sleep 0.25
+    loaded="$(eval_js "$wid" \
+      "(typeof window.__bgnav==='undefined' && document.readyState==='complete') ? location.href : ''" \
+      2>/dev/null || true)"
+    [[ -n "$loaded" ]] && break
+  done
+  [[ -n "$loaded" ]] || die "timed out loading ${url}"
+  printf '%s\n' "$loaded"
+}
+
+main() {
+  local cmd="${1:-}"
+  shift || true
+  case "$cmd" in
+    open) cmd_open "${1:-}" ;;
+    text) eval_js "$(ensure_window)" "document.body.innerText" ;;
+    html) eval_js "$(ensure_window)" "document.documentElement.outerHTML" ;;
+    url)  eval_js "$(ensure_window)" "JSON.stringify({url:location.href,title:document.title})" ;;
+    js)
+      [[ -n "${1:-}" ]] || die "usage: brave-bg js '<expression>'"
+      eval_js "$(ensure_window)" "$1"
+      ;;
+    close)
+      local wid=""
+      [[ -f "$STATE" ]] && wid="$(cat "$STATE")"
+      if window_exists "$wid"; then
+        osascript - "$wid" <<'AS' >/dev/null
+on run argv
+  set wid to (item 1 of argv) as integer
+  tell application "Brave Browser" to close window id wid
+end run
+AS
+      fi
+      rm -f "$STATE"
+      ;;
+    ""|-h|--help|help)
+      sed -n '3,25p' "$0" | sed 's/^# \{0,1\}//'
+      ;;
+    *) die "unknown command: ${cmd}" ;;
+  esac
+}
+
+main "$@"
