@@ -60,19 +60,51 @@
       # Stage 2 of the Claude Code notifier: the part that has to outlive the
       # hook. Split out from claudeNotify below so stage 1 can hand it off to
       # setsid as a single argv-taking program instead of a quoted blob.
-      #   argv: $1 = clip  $2 = title  $3 = subtitle  $4 = body  $5 = group
+      #   argv: $1 = clip  $2 = title  $3 = subtitle  $4 = body
+      #
+      # osascript rather than terminal-notifier, which was living on borrowed
+      # time twice over. nixpkgs ships it as a prebuilt 2017 binary carrying
+      # only an x86_64 slice (Xcode 9.1, SDK 10.13) -- it ran here under
+      # Rosetta 2, which Apple keeps through macOS 27 and then cuts back to a
+      # subset for old games. And it drives NSUserNotification, deprecated
+      # since macOS 11. nixpkgs claims meta.platforms = aarch64-darwin, but
+      # that is Rosetta, not a native build. osascript is a universal binary
+      # macOS ships itself, so the banner is native arm64 with nothing to
+      # install and nothing to keep up to date.
+      #
+      # These are ordinary NotificationCenter notifications, not some lesser
+      # channel: same banners, same Notification Center, same Focus rules.
+      # macOS attributes them to whichever app is responsible for the process
+      # that ran osascript, so from the Claude desktop app they arrive with
+      # Claude's own name and icon, governed by Claude's entry in System
+      # Settings > Notifications. Measured, that attribution survives the perl
+      # setsid below, so the detached stage 2 is branded the same as a direct
+      # call. Corollary not measured: driving Claude Code from a terminal
+      # should hand the banners that terminal's identity instead.
+      #
+      # What it does cost: `display notification` has no equivalent of
+      # terminal-notifier's -group, so a session can no longer replace its own
+      # stale banner and several finishing sessions stack up; and no -activate,
+      # so the click target is whatever app owns the notification rather than a
+      # chosen one. Winning those back needs our own bundle against the
+      # UserNotifications framework, which additionally cannot live in
+      # /nix/store -- the framework refuses it there with "Notifications are
+      # not allowed for this application", so it would have to be copied into
+      # ~/Applications and lsregister'd.
+      #
+      # The strings go through the environment rather than into the -e script.
+      # Bodies are arbitrary assistant prose, so splicing them into AppleScript
+      # source would break on the first quote and would run anything shaped
+      # like code; `system attribute` hands them over as opaque strings.
       claudeNotifyEmit = pkgs.writeShellScript "claude-notify-emit" ''
-        ${pkgs.terminal-notifier}/bin/terminal-notifier \
-          -title "$2" -subtitle "$3" -message "$4" -group "$5" \
-          -activate com.mitchellh.ghostty >/dev/null 2>&1
+        # One -e: each -e is a separate line of the script, and the `with
+        # title ...` continuation has to stay in the same statement to parse.
+        NOTIF_TITLE="$2" NOTIF_SUBTITLE="$3" NOTIF_BODY="$4" \
+          /usr/bin/osascript -e 'display notification (system attribute "NOTIF_BODY") with title (system attribute "NOTIF_TITLE") subtitle (system attribute "NOTIF_SUBTITLE")' \
+          >/dev/null 2>&1
         exec /usr/bin/afplay "$1"
       '';
 
-      # Stage 1: runs inside the hook, reads the event JSON off stdin and works
-      # out what to say. A banner rather than only a sound, because a sound is
-      # gone the moment it plays and NotificationCenter still has it waiting
-      # when you come back to the desk. Clicking the banner raises Ghostty.
-      #   argv: $1 = done | attention | failed
       # Niteo's Grafana MCP server, per https://github.com/teamniteo/claude.
       # The service account token is created at
       # https://niteo.grafana.net/org/serviceaccounts and lives in 1Password.
@@ -126,6 +158,11 @@
           } $out/.mcp.json
         '';
 
+      # Stage 1: runs inside the hook, reads the event JSON off stdin and works
+      # out what to say. A banner rather than only a sound, because a sound is
+      # gone the moment it plays and NotificationCenter still has it waiting
+      # when you come back to the desk.
+      #   argv: $1 = done | attention | failed
       claudeNotify = pkgs.writeShellScript "claude-notify" ''
         PATH="${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:/usr/bin:/bin"
         export PATH
@@ -137,9 +174,6 @@
         # Which checkout this fired from — you usually have several sessions up.
         project="$(basename "$(jqf '.cwd // ""')")"
         [ -n "$project" ] || project="claude"
-        # Per-session group, so a session replaces its own stale banner while
-        # different sessions still stack.
-        group="claude-$(jqf '.session_id // "0"')"
 
         # Distinct clip pools per event, so you can tell "finished" from
         # "blocked on you" by ear without looking. The acknowledgement lines
@@ -190,7 +224,7 @@
         # peonSounds now pads around. perl and afplay are macOS built-ins, so
         # PATH here doesn't matter.
         exec /usr/bin/perl -e 'use POSIX; exit if fork; POSIX::setsid(); exec @ARGV' \
-          ${claudeNotifyEmit} "$clip" "$title" "$project" "$body" "$group"
+          ${claudeNotifyEmit} "$clip" "$title" "$project" "$body"
       '';
     in {
       # Home Manager configuration
