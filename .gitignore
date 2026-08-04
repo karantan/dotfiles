@@ -1,1 +1,5 @@
 secrets.nix
+
+# Build symlinks left behind by `nix build` / `darwin-rebuild build`.
+result
+result-*
