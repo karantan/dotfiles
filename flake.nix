@@ -136,7 +136,7 @@
         # above fixes, so no amount of padding recovers it -- put them back
         # once the files are replaced.
         case "$kind" in
-          done)      pool="work-complete" ;;
+          done)      pool="work-complete ready-to-work ready-to-work2 work-work" ;;
           attention) pool="something-need-doing what-do-you-want more-work hmm" ;;
           failed)    pool="hmm" ;;
           *)         exit 0 ;;
