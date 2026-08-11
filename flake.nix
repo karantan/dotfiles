@@ -410,6 +410,17 @@
           source = ./bin/brave-bg;
           executable = true;
         };
+
+        # Global instructions for Claude Code. Deliberately *not*
+        # `programs.claude-code.context` (which would do the same job): that
+        # option copies the file into the Nix store, so ~/.claude/CLAUDE.md
+        # becomes read-only and every tweak needs a `darwin-rebuild switch`
+        # before Claude sees it. Out-of-store symlink instead, so the file
+        # stays live-editable -- by me or by Claude itself -- while still
+        # being version-controlled here. Edits show up in the next session;
+        # remember to commit them.
+        ".claude/CLAUDE.md".source =
+          config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.dotfiles/claude/CLAUDE.md";
       };
 
       # Claude Code: the package (tracking unstable — it releases often) plus
