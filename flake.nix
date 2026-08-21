@@ -515,9 +515,14 @@
 
           # Turn the plugins on. Without this the marketplace is merely known,
           # not installed.
+          #
+          # niteo-grafana is off by default: starting it runs `op read`, which
+          # makes 1Password pop a biometric prompt at the start of every Claude
+          # session, whether or not that session ever touches Grafana. Flip it
+          # back to true (and rebuild) for the sessions that need Grafana.
           enabledPlugins = {
             "hakuto@hakuto" = true;
-            "niteo-grafana@niteo-mcp" = true;
+            "niteo-grafana@niteo-mcp" = false;
           };
         };
       };
