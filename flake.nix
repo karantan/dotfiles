@@ -524,6 +524,11 @@
             "hakuto@hakuto" = true;
             "niteo-grafana@niteo-mcp" = false;
           };
+
+          # Don't connect Remote Control on every session start; `/remote-control`
+          # still turns it on for the sessions that want it. (The bigger hammer
+          # is `disableRemoteControl = true`, which also kills the command.)
+          remoteControlAtStartup = false;
         };
       };
 
