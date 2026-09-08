@@ -21,11 +21,31 @@
 #   brave-bg url            print current URL + title as JSON
 #   brave-bg close          close the scratch window
 #
+# The scratch window is shared. A second agent (or you) running `brave-bg open`
+# navigates the same window, so a later `js`/`text`/`html` can silently run
+# against a page you never asked for. That turns a read into wrong data, and a
+# POST into a request sent to the wrong site. So `open` records the host it
+# landed on, and `text`, `html` and `js` refuse to run if the tab has since
+# moved to a different one. `url` and `close` are never guarded: `url` is how
+# you find out where the window actually went.
+#
+# To drive a tab you did not open yourself, pass --any-host (or set
+# BRAVE_BG_ANY_HOST=1). To get a window nobody else can steal, point
+# XDG_CACHE_HOME somewhere private: the window id and expected host are both
+# kept under it.
+#
 set -euo pipefail
 
 APP="Brave Browser"
 STATE="${XDG_CACHE_HOME:-${HOME}/.cache}/brave-bg-window"
+HOSTSTATE="${XDG_CACHE_HOME:-${HOME}/.cache}/brave-bg-host"
 mkdir -p "$(dirname "$STATE")"
+
+ANY_HOST="${BRAVE_BG_ANY_HOST:-}"
+
+# Returned by the guard wrapper instead of the expression's own value. Long and
+# specific so a page cannot plausibly produce it by accident.
+MISMATCH="__brave_bg_host_mismatch__"
 
 die() { printf 'brave-bg: %s\n' "$*" >&2; exit 1; }
 
@@ -33,6 +53,19 @@ die() { printf 'brave-bg: %s\n' "$*" >&2; exit 1; }
 js_str() {
   local s=${1//\\/\\\\}
   s=${s//\'/\\\'}
+  printf "'%s'" "$s"
+}
+
+# Like js_str, but also escapes the line terminators that cannot appear raw
+# inside a JS string literal. Needed because the guard passes the caller's
+# whole program through as a literal, and those are routinely multi-line.
+js_str_multiline() {
+  local s=${1//\\/\\\\}
+  s=${s//\'/\\\'}
+  s=${s//$'\r'/\\r}
+  s=${s//$'\n'/\\n}
+  s=${s//$'\u2028'/\\u2028}
+  s=${s//$'\u2029'/\\u2029}
   printf "'%s'" "$s"
 }
 
@@ -112,6 +145,35 @@ end run
 AS
 }
 
+# The host `open` last landed on, if any.
+expected_host() {
+  [[ -f "$HOSTSTATE" ]] && cat "$HOSTSTATE" || true
+}
+
+# eval_js, but refuses to run if the tab has wandered to another host. The
+# check and the caller's program go over in one Apple Event, so this costs no
+# extra round trip; `eval` is what keeps multi-statement input behaving exactly
+# as it does unguarded, returning the last statement's completion value.
+eval_js_guarded() {
+  local wid="$1" user="$2" want out
+  want="$(expected_host)"
+
+  if [[ -n "$ANY_HOST" || -z "$want" ]]; then
+    eval_js "$wid" "$user"
+    return
+  fi
+
+  out="$(eval_js "$wid" "(function(){var w=$(js_str "$want");if(location.host!==w){return $(js_str "$MISMATCH")+location.host;}return eval($(js_str_multiline "$user"));})()")"
+
+  if [[ "$out" == "${MISMATCH}"* ]]; then
+    die "scratch tab is on '${out#"$MISMATCH"}', expected '${want}'.
+Something else navigated the shared window. Re-run 'brave-bg open <url>' to
+take it back, pass --any-host to act on whatever is loaded, or set
+XDG_CACHE_HOME to a private directory to get a window of your own."
+  fi
+  printf '%s' "$out"
+}
+
 cmd_open() {
   local url="${1:-}" wid loaded=""
   [[ -n "$url" ]] || die "usage: brave-bg open <url>"
@@ -131,20 +193,35 @@ cmd_open() {
     [[ -n "$loaded" ]] && break
   done
   [[ -n "$loaded" ]] || die "timed out loading ${url}"
+
+  # Record the host we actually ended on, not the one asked for, so a redirect
+  # across hosts does not leave every later command tripping the guard.
+  eval_js "$wid" "location.host" >"$HOSTSTATE" 2>/dev/null || rm -f "$HOSTSTATE"
+
   printf '%s\n' "$loaded"
 }
 
 main() {
+  while [[ "${1:-}" == --* ]]; do
+    case "$1" in
+      --any-host) ANY_HOST=1; shift ;;
+      --help) break ;;
+      *) die "unknown option: $1" ;;
+    esac
+  done
+
   local cmd="${1:-}"
   shift || true
   case "$cmd" in
     open) cmd_open "${1:-}" ;;
-    text) eval_js "$(ensure_window)" "document.body.innerText" ;;
-    html) eval_js "$(ensure_window)" "document.documentElement.outerHTML" ;;
+    text) eval_js_guarded "$(ensure_window)" "document.body.innerText" ;;
+    html) eval_js_guarded "$(ensure_window)" "document.documentElement.outerHTML" ;;
+    # Deliberately unguarded: `url` is how you diagnose a guard failure, so it
+    # has to answer for whatever is actually loaded.
     url)  eval_js "$(ensure_window)" "JSON.stringify({url:location.href,title:document.title})" ;;
     js)
       [[ -n "${1:-}" ]] || die "usage: brave-bg js '<expression>'"
-      eval_js "$(ensure_window)" "$1"
+      eval_js_guarded "$(ensure_window)" "$1"
       ;;
     close)
       local wid=""
@@ -157,10 +234,10 @@ on run argv
 end run
 AS
       fi
-      rm -f "$STATE"
+      rm -f "$STATE" "$HOSTSTATE"
       ;;
     ""|-h|--help|help)
-      sed -n '3,25p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '3,37p' "$0" | sed 's/^# \{0,1\}//'
       ;;
     *) die "unknown command: ${cmd}" ;;
   esac
