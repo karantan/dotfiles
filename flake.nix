@@ -346,6 +346,13 @@
           share = true;
         };
         initContent = ''
+          # macOS caps interactive shells at 256 open files. Nix's tarball
+          # cache (~/.cache/nix/tarball-cache-v2) is a git repo with one pack
+          # per fetched tarball, and libgit2 opens all of them at once, so
+          # devenv/direnv fail with "Too many open files" once a few hundred
+          # accumulate. Raise the soft limit; the hard limit is unlimited.
+          ulimit -n 10240
+
           function edithosts {
               export EDITOR="zed --wait"
               sudo -e /etc/hosts
