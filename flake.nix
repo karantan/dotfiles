@@ -533,8 +533,14 @@
           };
 
           # Don't connect Remote Control on every session start; `/remote-control`
-          # still turns it on for the sessions that want it. (The bigger hammer
-          # is `disableRemoteControl = true`, which also kills the command.)
+          # still turns it on for the sessions that want it. This is the same
+          # knob as the /config toggle "Enable Remote Control for all sessions",
+          # which writes it to this very file.
+          #
+          # Note there is no bigger hammer available here: `disableRemoteControl`
+          # is read only from policy settings (`/Library/Application
+          # Support/ClaudeCode/managed-settings.json`), never from user
+          # settings.json, so putting it in this block would do nothing.
           remoteControlAtStartup = false;
         };
       };
