@@ -16,6 +16,13 @@
   two sentences. Don't substitute `--` or a lone hyphen as a stand-in either;
   rewrite the sentence.
 
+## Link everything you reference
+
+Whenever you mention an issue, PR, ticket or conversation (GitHub, HelpScout,
+Sentry, Grafana, etc.), make it a clickable markdown link to it, e.g.
+[teamniteo/ebn#36849](https://github.com/teamniteo/ebn/issues/36849), never a
+bare `#36849`. This applies to summaries and reports too.
+
 ## Be brief
 
 Default to the shortest response that still fully answers. Cut length, not
