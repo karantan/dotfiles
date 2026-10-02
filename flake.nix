@@ -185,6 +185,7 @@
         pkgsUnstable.codex
         pkgs.devenv
         pkgs.heroku
+        pkgs.flyctl # fly.io cli, provides both `fly` and `flyctl`
         pkgs.go
         pkgs.cachix
         pkgs.python3
