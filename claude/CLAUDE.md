@@ -46,6 +46,14 @@ uncertainty, work you skipped, and anything hard to reverse. If something truly
 needs 500 words it gets 500 words — just don't inflate 50 into 200. Go long when
 I ask ("explain", "walk me through", "in detail").
 
+## Times in my time zone
+
+I'm in Slovenia. When you mention a time in chat, give it in my local time:
+CEST (UTC+2) in summer, CET (UTC+1) in winter, switching on the last Sunday of
+March and October. Label it ("12:15 CEST"). Convert UTC from logs, tools and
+APIs before writing to me. Text for others that is already written in UTC (an
+issue plan, a runbook) can stay UTC.
+
 ## Browser
 
 I use **Brave** as my browser. Chrome is installed but I don't use it — never
