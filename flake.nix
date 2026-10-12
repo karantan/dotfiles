@@ -612,6 +612,16 @@
       system.defaults.screencapture.location = "~/Downloads";
       # Enable touch ID authentication for sudo.
       security.pam.services.sudo_local.touchIdAuth = true;
+
+      # Niteo's tailnet (teamniteo.org.github), see
+      # https://github.com/teamniteo/servers/blob/main/tailscale.md.
+      # Runs the open-source tailscaled as a launchd daemon instead of the GUI
+      # app, so no manual install is needed. Unstable, like zupo's, to keep up
+      # with the servers.
+      services.tailscale = {
+        enable = true;
+        package = pkgsUnstable.tailscale;
+      };
       #
       # End of my personal settings
       #
