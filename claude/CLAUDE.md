@@ -46,6 +46,17 @@ uncertainty, work you skipped, and anything hard to reverse. If something truly
 needs 500 words it gets 500 words — just don't inflate 50 into 200. Go long when
 I ask ("explain", "walk me through", "in detail").
 
+## Scripts are Python, never bash
+
+Any script that is saved to disk is written in Python: a skill's `scripts/`,
+a helper in a repo, a check, anything that will run more than once. Bash is
+the least readable of the common languages to me, and bash scripts hide
+traps (a `cat` with an empty file list hangs on stdin, zsh expands a line of
+equals signs, quoting breaks on spaces). Bash is fine for one-off commands in
+a session: `wc`, `grep`, git, a short pipeline. The moment there is a loop, a
+condition or a function, or the file is kept, it is a `.py` with a usage line
+in its docstring. This applies to every agent and subagent, in every repo.
+
 ## Times in my time zone
 
 I'm in Slovenia. When you mention a time in chat, give it in my local time:
@@ -120,3 +131,10 @@ ask again.
 `screencapture` is unavailable — this app lacks macOS Screen Recording
 permission, so screenshots of Brave fail with "could not create image from
 display". Read page text instead.
+
+## Terminal
+
+Never open or drive the macOS Terminal app. When a command has to run in my
+own shell (tailnet hosts like `ssh cruncher`, anything interactive), use the
+Claude app's built-in terminal panel, or Ghostty if it has to be a separate
+terminal app.
