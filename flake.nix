@@ -613,6 +613,16 @@
       # Enable touch ID authentication for sudo.
       security.pam.services.sudo_local.touchIdAuth = true;
 
+      # Distrust roots of the compromised eMudhra intermediates (Oct 2026), as CLI
+      # tools reading /etc/ssl/certs/ca-certificates.crt never check revocation.
+      # Names as they appear in that file. Same as zupo's
+      # https://github.com/zupo/dotfiles/commit/008de151bdaced03e5ee17b94970da298d6e85e5.
+      # https://paretosecurity.com/mac/checks/compromised-ca
+      security.pki.caCertificateBlacklist = [
+        "Comodo AAA Services root" # AAA Certificate Services
+        "emSign ECC Root CA - G3"
+      ];
+
       # Niteo's tailnet (teamniteo.org.github), see
       # https://github.com/teamniteo/servers/blob/main/tailscale.md.
       # Runs the open-source tailscaled as a launchd daemon instead of the GUI
