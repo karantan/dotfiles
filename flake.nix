@@ -543,6 +543,12 @@
           # Support/ClaudeCode/managed-settings.json`), never from user
           # settings.json, so putting it in this block would do nothing.
           remoteControlAtStartup = false;
+
+          # The EBN admin MCP server (easyblognetworks#4087) can redeploy and
+          # relocate blogs and flip server state, so every one of its tool
+          # calls gets an approval prompt the agent cannot opt out of. The
+          # server previews writes anyway; this is the client-side half.
+          permissions.ask = [ "mcp__ebn-admin__*" ];
         };
       };
 
