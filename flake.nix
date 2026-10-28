@@ -549,6 +549,13 @@
           # calls gets an approval prompt the agent cannot opt out of. The
           # server previews writes anyway; this is the client-side half.
           permissions.ask = [ "mcp__ebn-admin__*" ];
+
+          # Claude Code verifies TLS against its own bundled roots, which lack
+          # the newer Let's Encrypt hierarchy (ISRG Root YE, cross-signed by
+          # ISRG Root X2): the EBN admin MCP's tailscale certificate failed
+          # with UNABLE_TO_GET_ISSUER_CERT_LOCALLY while curl and Python
+          # accepted it. The Mozilla bundle from nixpkgs has them all.
+          env.NODE_EXTRA_CA_CERTS = "${pkgsUnstable.cacert}/etc/ssl/certs/ca-bundle.crt";
         };
       };
 
