@@ -545,10 +545,35 @@
           remoteControlAtStartup = false;
 
           # The EBN admin MCP server (easyblognetworks#4087) can redeploy and
-          # relocate blogs and flip server state, so every one of its tool
-          # calls gets an approval prompt the agent cannot opt out of. The
-          # server previews writes anyway; this is the client-side half.
-          permissions.ask = [ "mcp__ebn-admin__*" ];
+          # relocate blogs and flip server state, so each of its write tools
+          # gets an approval prompt the agent cannot opt out of. The server
+          # previews writes anyway; this is the client-side half. Read-only
+          # tools run without a prompt. Both are listed by name so a new tool
+          # is not let through until it is added here (docs/admin-mcp.rst in
+          # the ebn repo has the same lists).
+          permissions.allow = [
+            "mcp__ebn-admin__find_users"
+            "mcp__ebn-admin__get_user"
+            "mcp__ebn-admin__list_user_blogs"
+            "mcp__ebn-admin__find_blogs"
+            "mcp__ebn-admin__get_blog"
+            "mcp__ebn-admin__blog_audit_log"
+            "mcp__ebn-admin__user_audit_log"
+            "mcp__ebn-admin__blog_jobs"
+            "mcp__ebn-admin__list_servers"
+            "mcp__ebn-admin__get_server"
+            "mcp__ebn-admin__list_server_blogs"
+            "mcp__ebn-admin__reverse_proxy_progress"
+          ];
+          permissions.ask = [
+            "mcp__ebn-admin__redeploy_blog"
+            "mcp__ebn-admin__reset_deployed_failed"
+            "mcp__ebn-admin__refresh_reverse_proxy_routing"
+            "mcp__ebn-admin__relocate_blog_to_front"
+            "mcp__ebn-admin__reverse_proxy_server"
+            "mcp__ebn-admin__set_server_roles"
+            "mcp__ebn-admin__set_server_state"
+          ];
 
           # Claude Code verifies TLS against its own bundled roots, which lack
           # the newer Let's Encrypt hierarchy (ISRG Root YE, cross-signed by
