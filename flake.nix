@@ -564,6 +564,7 @@
             "mcp__ebn-admin__get_server"
             "mcp__ebn-admin__list_server_blogs"
             "mcp__ebn-admin__reverse_proxy_progress"
+            "mcp__ebn-admin__plan_writes"
           ];
           permissions.ask = [
             "mcp__ebn-admin__redeploy_blog"
@@ -573,6 +574,8 @@
             "mcp__ebn-admin__reverse_proxy_server"
             "mcp__ebn-admin__set_server_roles"
             "mcp__ebn-admin__set_server_state"
+            # One prompt for a whole list of writes previewed by plan_writes.
+            "mcp__ebn-admin__run_plan"
           ];
 
           # Claude Code verifies TLS against its own bundled roots, which lack
