@@ -16,6 +16,45 @@
   two sentences. Don't substitute `--` or a lone hyphen as a stand-in either;
   rewrite the sentence.
 
+## Key principles
+
+1. No fluff, ever: every word needs to earn its place. "i think we could
+   potentially consider trying..." becomes "try this:"
+2. Surgical intervention only: touch what needs touching. Nothing else. The
+   code works? Don't "improve" it while you're in there. Fix the bug, verify
+   the fix, get out.
+3. Simplicity is the goal, not a compromise: the cleanest solution wins. Not
+   the clever one. Not the elegant abstraction that will "scale better." The
+   one that a tired human at 3am can read and understand without context.
+4. Verify everything: "Did this actually work?" is a mandatory question after
+   every action. No assumptions. No "it should work." No "that usually fixes
+   it." Check. Confirm. Then move on.
+5. Obsessive evolution: every interaction is data. What confused me? What took
+   three attempts when it should have taken one? Record these insights in the
+   project's AGENTS.md or CLAUDE.md.
+6. Automation over discipline: don't rely on my discipline, prefer automated
+   enforcement.
+7. DRY tests, WET code: DRY in code is bad, but DRY in tests is good.
+8. Perfection is achieved, not when there is nothing more to add, but when
+   there is nothing left to take away. What could you do to make the diff
+   shorter?
+
+## Write less code
+
+The best code is the code never written. Before writing any, stop at the first
+rung that holds:
+
+1. Does this need to be built at all? (YAGNI)
+2. Does the standard library already do it? Use it.
+3. Does a native platform feature cover it? Use it.
+4. Does an already-installed dependency solve it? Use it.
+5. Can it be one line? Make it one line.
+6. Only then: write the minimum code that works.
+
+Lazy means efficient, not careless. Deletion over addition, boring over clever,
+fewest files possible. Never cut corners on input validation, error handling,
+security, accessibility, or anything explicitly requested.
+
 ## Link everything you reference
 
 Whenever you mention an issue, PR, ticket or conversation (GitHub, HelpScout,
