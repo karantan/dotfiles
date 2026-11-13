@@ -177,3 +177,14 @@ Never open or drive the macOS Terminal app. When a command has to run in my
 own shell (tailnet hosts like `ssh cruncher`, anything interactive), use the
 Claude app's built-in terminal panel, or Ghostty if it has to be a separate
 terminal app.
+
+## GitHub access goes through Passlet
+
+Every authenticated GitHub operation (`gh`, `git` push/fetch/clone over HTTPS,
+API calls) runs under a Passlet grant: `passlet request` for the exact repos
+and minimum permissions, then `passlet exec --grant … -- <cmd>`. I approve
+each request with Touch ID, so say what you are requesting before you run it
+and give the command at least 130 seconds. Reuse a saved grant (`--out`) for
+the rest of a task instead of asking again. Follow the `passlet` skill for the
+details. Never fall back to my ambient `gh` login or other credentials; if
+Passlet fails, stop and tell me. Local git (commit, diff, log) needs no grant.
