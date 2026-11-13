@@ -9,9 +9,14 @@
     home-manager.url = "github:nix-community/home-manager/release-26.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
+    # Short-lived, Touch ID approved GitHub credentials for agents. Same pin
+    # as zupo's dotfiles; it pins both the app and its Claude plugin.
+    # https://github.com/ParetoSecurity/passlet
+    passlet.url = "github:ParetoSecurity/passlet/v0.8.0";
+    passlet.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, nix-darwin, home-manager }:
+  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, nix-darwin, home-manager, passlet }:
   let
     # Instantiate nixpkgs-unstable exactly once. Every `import nixpkgs-unstable
     # { ... }` is a full, independent nixpkgs evaluation, so per-package imports
@@ -173,6 +178,13 @@
       home.sessionPath = [ "$HOME/.local/bin" ];
 
       programs.home-manager.enable = true;
+
+      # Installs the passlet CLI and signed helper, and runs the approver as a
+      # LaunchAgent at login. One-time setup after the rebuild:
+      # `passlet approver github setup`, then `passlet doctor`.
+      imports = [ passlet.homeManagerModules.default ];
+      programs.passlet.enable = true;
+
       manual.manpages.enable = false;
       manual.html.enable = false;
       manual.json.enable = false;
@@ -519,6 +531,13 @@
                 path = "${niteoMcpMarketplace}";
               };
             };
+            # Passlet's skill, from the same pinned source as the app.
+            passlet = {
+              source = {
+                source = "directory";
+                path = "${passlet}";
+              };
+            };
           };
 
           # Turn the plugins on. Without this the marketplace is merely known,
@@ -531,6 +550,7 @@
           enabledPlugins = {
             "hakuto@hakuto" = true;
             "niteo-grafana@niteo-mcp" = false;
+            "passlet@passlet" = true;
           };
 
           # Don't connect Remote Control on every session start; `/remote-control`

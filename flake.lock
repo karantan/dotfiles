@@ -74,12 +74,34 @@
         "type": "github"
       }
     },
+    "passlet": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794266740,
+        "narHash": "sha256-PdbelChNQsRP0OCu/nYVAvddkWoC0kfXN6aEXWJYX/g=",
+        "owner": "ParetoSecurity",
+        "repo": "passlet",
+        "rev": "5ad0dff092f9286c1a87a330e39509912ed8d38a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ParetoSecurity",
+        "ref": "v0.8.0",
+        "repo": "passlet",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
         "nixpkgs": "nixpkgs",
-        "nixpkgs-unstable": "nixpkgs-unstable"
+        "nixpkgs-unstable": "nixpkgs-unstable",
+        "passlet": "passlet"
       }
     }
   },
