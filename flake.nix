@@ -12,7 +12,7 @@
     # Short-lived, Touch ID approved GitHub credentials for agents. Same pin
     # as zupo's dotfiles; it pins both the app and its Claude plugin.
     # https://github.com/ParetoSecurity/passlet
-    passlet.url = "github:ParetoSecurity/passlet/v0.8.0";
+    passlet.url = "github:ParetoSecurity/passlet/v0.10.0";
     passlet.inputs.nixpkgs.follows = "nixpkgs";
   };
 
