@@ -181,9 +181,20 @@ terminal app.
 ## GitHub access goes through Passlet
 
 Every authenticated GitHub operation (`gh`, `git` push/fetch/clone over HTTPS,
-API calls) runs under a Passlet grant. Use `passlet exec --repos … --permissions … -- <cmd>`
-with the exact repos and minimum permissions. Passlet reuses matching cached
-grants. When a new grant is needed, say what you are requesting and allow at
+API calls) runs under a Passlet grant. Use `passlet exec --repos … --permissions … -- <cmd>`.
+Passlet reuses a cached grant only when it covers the whole request, so
+different permission mixes each cost me a Touch ID. For any of the four EBN
+repos, always request this exact bundle, even for a read:
+
+```
+--repos teamniteo/ebn,teamniteo/ebn-nixos,teamniteo/easyblognetworks,teamniteo/site-easyblognetworks
+--permissions contents:write,pull_requests:write,issues:write,actions:read
+```
+
+Go beyond it only when a task needs a permission it lacks (e.g. `actions:write`
+to rerun a workflow). Other repos: exact repos, minimum permissions. This
+overrides the `passlet` skill's minimum-scope advice for these repos. When a
+new grant is needed, say what you are requesting and allow at
 least 130 seconds for Touch ID approval. Follow the `passlet` skill for the
 details. Never fall back to my ambient `gh` login or other credentials; if
 Passlet fails, stop and tell me. Local git (commit, diff, log) needs no grant.
